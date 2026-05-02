@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Bedrock Biome Creator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Highlight.js for JSON preview styling -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs2015.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <!-- JSZip for exporting .mcaddon files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/monolith.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><rect width='128' height='128' fill='%23282a36' rx='16'/><text x='64' y='88' font-family='sans-serif' font-size='80' font-weight='bold' fill='%23bd93f9' text-anchor='middle'>B</text></svg>">
+
+    <style>
+        /* Base Variables & Reset */
+:root {
+    /* Backgrounds: Deepened slightly to reduce eye strain */
+    --bg-main: #1e1f29;
+    --bg-panel: #282a36;
+    --bg-input: #343746;
+    --bg-input-hover: #44475a;
+
+    /* Borders: Softened to remove intense visual noise */
+    --border-color: #44475a; 
+    --border-focus: #bd93f9; 
+
+    /* Text: High clarity for reading, fixed muted text contrast */
+    --text-main: #f8f8f2;
+    --text-muted: #a8b2ce; 
+
+    /* Accents: Fine colors tailored for harmonious hovering */
+    --accent: #bd93f9;
+    --accent-hover: #caa9fa;
+    --danger: #ff5555;
+    --danger-hover: #ff6e6e;
+
+    /* Typography: Added 'Inter' for superior screen readability */
+    --font-sans: 'Inter', 'Nunito', 'Segoe UI', Tahoma, sans-serif;
+    --font-mono: 'Fira Code', Consolas, monospace;
+}
+
+
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
+
+        /* Buttons */
+        button.btn-standard {
+            background-color: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-family: var(--font-sans);
+            transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        button.btn-standard:hover { background-color: var(--bg-input-hover); }
+        button.primary { background-color: var(--accent); color: #fff; border-color: var(--accent); }
+        button.primary:hover { background-color: var(--accent-hover); border-color: var(--accent-hover); }
+        button.danger { background-color: transparent; color: var(--danger); border-color: var(--danger); padding: 4px 8px; font-size: 0.8rem; }
+        button.danger:hover { background-color: var(--danger); color: #fff; }
+        button.icon-btn { padding: 8px; border-radius: 4px; background: transparent; border: 1px solid transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+        button.icon-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-main); }
+
+        /* --- Views --- */
+        #view-home, #view-editor {
+            display: none; flex-direction: column; height: 100%; width: 100%; position: relative;
+        }
+        #view-home.active, #view-editor.active { display: flex; }
+
+        /* --- Home Screen --- */
+        .home-header { text-align: center; padding: 50px 20px 30px; }
+        .home-header h1 { font-size: clamp(1.5rem, 6vw, 2.5rem); color: var(--accent); margin-bottom: 10px; white-space: nowrap; }
+        .home-header p { color: var(--text-muted); font-size: 1.1rem; }
+
+        
+        .projects-container { max-width: 1000px; margin: 0 auto; width: 100%; padding: 0 20px 20px 20px; overflow-y: auto; flex: 1; }
+        
+        .projects-toolbar { 
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; 
+            border-bottom: 1px solid var(--border-color); padding: 20px 0 15px 0;
+            position: sticky; top: 0; background-color: var(--bg-main); z-index: 10;
+        }
+        .projects-toolbar h2 { font-size: 1.2rem; font-weight: normal; transition: font-size 0.2s; }
+        
+        .project-card {
+            background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; transition: transform 0.2s, border-color 0.2s, padding 0.2s;
+        }
+        .project-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .project-info { cursor: pointer; flex: 1; }
+        .project-title { font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 4px; transition: font-size 0.2s; }
+        .project-meta { font-size: 0.8rem; color: var(--text-muted); transition: font-size 0.2s; }
+        .project-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+        /* Large Display Adjustments */
+        @media (min-width: 1200px) {
+            .projects-toolbar h2 { font-size: 1.5rem; }
+            .project-card { padding: 20px 25px; margin-bottom: 15px; }
+            .project-title { font-size: 1.35rem; margin-bottom: 6px; }
+            .project-meta { font-size: 0.95rem; }
+        }
+
+
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-style: italic; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed var(--border-color); }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; width: 90%; max-width: 450px;
+            padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 90vh; display: flex; flex-direction: column;
+        }
+        .modal-box h3 { margin-bottom: 15px; color: #fff; font-size: 1.2rem; flex-shrink: 0;}
+        .modal-box .modal-body { flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 15px; }
+        .modal-box input[type="text"], .modal-box input[type="number"] { margin-bottom: 15px; width: 100%; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
+
+        .biome-checklist { border: 1px solid var(--border-color); border-radius: 4px; padding: 5px; background: var(--bg-main); max-height: 150px; overflow-y: auto; margin-bottom: 15px; }
+        .biome-checklist label { display: flex; align-items: center; padding: 8px; margin: 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+        .biome-checklist label:last-child { border-bottom: none; }
+        .biome-checklist input { width: auto !important; margin-right: 10px !important; margin-bottom: 0 !important; }
+
+        /* --- Editor Screen --- */
+        .desktop-header {
+            background-color: var(--bg-panel); border-bottom: 1px solid var(--border-color); padding: 12px 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 10;
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; overflow: hidden; }
+        .header-left h1 { font-size: 1.1rem; color: var(--accent); display: flex; align-items: center; gap: 10px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+
+        /* Tabs Bar */
+        .tabs-bar {
+            display: flex; background-color: var(--bg-main); border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0; align-items: stretch; z-index: 5; overflow-x: auto;
+        }
+        .tabs-container { display: flex; flex-grow: 1; overflow-x: auto; scrollbar-width: none; }
+        .tabs-container::-webkit-scrollbar { display: none; }
+        .tab {
+            padding: 10px 20px; color: var(--text-muted); border-right: 1px solid var(--border-color);
+            cursor: pointer; white-space: nowrap; font-size: 0.85rem; display: flex; align-items: center; gap: 10px;
+            background-color: var(--bg-panel); transition: background-color 0.2s, color 0.2s;
+        }
+        .tab:hover { background-color: #252525; }
+        .tab.active { background-color: var(--bg-main); color: var(--accent); border-bottom: 2px solid var(--accent); font-weight: 600; }
+        .tab-close { font-size: 1.2rem; line-height: 1; opacity: 0.5; padding-bottom: 2px; }
+        .tab-close:hover { opacity: 1; color: var(--danger); }
+        .add-tab-btn {
+            padding: 10px 20px; color: var(--text-muted); cursor: pointer; white-space: nowrap;
+            background-color: var(--bg-panel); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; transition: color 0.2s; border-right: 1px solid var(--border-color);
+        }
+        .add-tab-btn:hover { color: var(--accent); }
+
+        .workspace { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+        /* Panels */
+        .sidebar {
+            width: 280px; background-color: var(--bg-panel); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;
+        }
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; background-color: var(--bg-main); min-width: 300px; }
+        
+        .preview-panel {
+            width: 480px; background-color: #1e1e1e; border-left: 1px solid var(--border-color);
+            display: flex; flex-direction: column; flex-shrink: 0; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;
+        }
+
+        /* Collapsed States Desktop */
+        .sidebar.collapsed { width: 50px; }
+        .preview-panel.collapsed { width: 50px; }
+        .collapsed .panel-title, .collapsed .component-list, .collapsed .preview-content, .collapsed .preview-actions, .collapsed .client-separator { display: none !important; }
+
+        .panel-header {
+            padding: 0 15px; height: 48px; background-color: rgba(0, 0, 0, 0.2); border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; white-space: nowrap; gap: 10px;
+        }
+        .sidebar.collapsed .panel-header, .preview-panel.collapsed .panel-header { padding: 0; justify-content: center; }
+        .panel-title { font-size: 0.75rem; text-transform: uppercase; font-weight: bold; color: var(--text-muted); letter-spacing: 0.5px; }
+
+        /* Component Toggles */
+        .component-list { padding: 10px; overflow-y: auto; flex: 1; }
+        .client-separator { background-color: rgba(0, 0, 0, 0.2); padding: 5px 15px; border-bottom: 1px solid var(--border-color); border-top: 1px solid var(--border-color); font-size: 0.65rem; text-transform: uppercase; font-weight: bold; color: var(--accent); }
+        
+        .toggle-item { display: flex; align-items: center; padding: 10px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; transition: background 0.2s; user-select: none; }
+        .toggle-item:hover { background-color: rgba(255, 255, 255, 0.05); }
+        .toggle-item.active { background-color: rgba(76, 175, 80, 0.15); border-left: 3px solid var(--accent); }
+        .toggle-item.required { opacity: 0.7; cursor: not-allowed; }
+        .toggle-item input[type="checkbox"] { margin-right: 12px; transform: scale(1.1); accent-color: var(--accent); cursor: inherit; }
+        .toggle-item span { font-size: 0.9rem; white-space: nowrap; }
+
+        /* Form Elements */
+        .card { 
+            background-color: var(--bg-panel); border: 1px solid var(--border-color); 
+            border-radius: 6px; margin-bottom: 20px; overflow: hidden; width: 100%;
+        }
+        .card.required { border-color: rgba(76, 175, 80, 0.5); }
+        .card-header { background-color: rgba(0, 0, 0, 0.2); padding: 12px 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 1rem; font-weight: 600; }
+        .badge-required { background-color: rgba(76, 175, 80, 0.2); color: var(--accent); font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-left: 8px; }
+        .card-body { padding: 15px; }
+        .card-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .form-group.flex-row { display: flex; align-items: flex-end; gap: 10px; }
+        
+        label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; background-color: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 4px; font-family: inherit; font-size: 0.9rem; transition: border-color 0.2s; }
+        textarea { resize: vertical; min-height: 80px; font-family: var(--font-mono); font-size: 0.8rem; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--border-focus); }
+        
+        .checkbox-label { display: flex; align-items: center; gap: 10px; background-color: var(--bg-input); padding: 10px 12px; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; margin-top: 20px; }
+        .checkbox-label input { transform: scale(1.1); accent-color: var(--accent); }
+        .checkbox-label span { font-size: 0.9rem; color: var(--text-main); margin: 0; }
+
+        .array-item { background-color: rgba(0, 0, 0, 0.15); border: 1px dashed var(--border-color); padding: 15px; border-radius: 6px; margin-bottom: 15px; position: relative; }
+        .array-remove-btn { position: absolute; top: 10px; right: 10px; }
+
+        .client-section-title { margin-top: 30px; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1.2rem; }
+
+        /* Preview Code Display */
+        .preview-content { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .preview-box { border: 1px solid var(--border-color); border-radius: 6px; background: #282c34; display: flex; flex-direction: column; flex: 1; min-height: 250px; overflow: hidden; }
+        .preview-box-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; }
+        .preview-box-body { flex: 1; overflow: auto; padding: 10px; }
+        pre { margin: 0; }
+        code { font-family: var(--font-mono); font-size: 0.85rem; border-radius: 6px; background: transparent !important; padding: 0 !important; }
+
+        .toast { visibility: hidden; background-color: var(--accent); color: #fff; text-align: center; border-radius: 4px; padding: 12px 24px; position: fixed; z-index: 100; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.3s, visibility 0.3s; }
+        .toast.show { visibility: visible; opacity: 1; }
+
+        /* --- MOBILE LAYOUT SPECIFICS --- */
+        .mobile-bottom-wrapper { display: none; flex-direction: column; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 50; }
+        .mobile-components { 
+            background: var(--bg-panel); padding: 0 10px; /* Removes vertical padding when hidden */
+            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; max-height: 0; transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+            border-top: none; gap: 10px;
+        }
+        .mobile-components.active { max-height: 280px; padding-top: 10px; padding-bottom: 10px; border-top: 1px solid var(--border-color); }
+
+        .mobile-components-row { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 5px; }
+        .mobile-components-row::-webkit-scrollbar { height: 4px; }
+        .mobile-components-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; font-weight: bold; }
+        
+        .mobile-components .toggle-item { margin-bottom: 0; padding: 8px 15px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); flex-shrink: 0; border-left: 1px solid var(--border-color); }
+        .mobile-components .toggle-item.active { background-color: rgba(76, 175, 80, 0.15); border-color: var(--accent); }
+
+        .mobile-nav {
+            background: var(--bg-panel); border-top: 1px solid var(--border-color); padding: 8px;
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .mobile-nav button { flex: 1; margin: 0 3px; font-size: 0.8rem; padding: 8px 4px; }
+
+        @media (max-width: 800px) {
+            .desktop-header { display: none !important; }
+            .sidebar { display: none !important; }
+            
+            .workspace { flex-direction: row; padding-bottom: 60px; } 
+            .workspace.components-open { padding-bottom: 200px; }
+            
+            .main-content { flex: 1; min-width: 0; padding-bottom: 20px; padding-right: 50px; }
+            
+            .preview-panel { 
+                width: 85% !important; max-width: 380px;
+                position: absolute; right: 0; top: 0; height: 100%; z-index: 40;
+                border-left: 1px solid var(--border-color); box-shadow: -5px 0 20px rgba(0,0,0,0.6);
+            }
+            .preview-panel.collapsed { width: 50px !important; box-shadow: none; }
+            .preview-content { padding-bottom: 80px; } 
+            
+            .mobile-bottom-wrapper { display: flex; }
+        }
+        
+                /* --- Pickr Custom UI Overrides --- */
+        
+        /* Main Popup Container */
+        .pcr-app {
+            background: var(--bg-panel) !important;
+            border: 1px solid var(--border-color) !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+            border-radius: 8px !important;
+            font-family: var(--font-sans) !important;
+        }
+
+        /* Color Trigger Button (The box you click) */
+        .pcr-button {
+            border: 1px solid var(--border-color) !important;
+            border-radius: 4px !important;
+            box-shadow: none !important;
+        }
+        
+        /* Remove the checkerboard pattern behind solid colors */
+        .pcr-button::before {
+            background: transparent !important;
+        }
+        
+        .pcr-app .pcr-interaction .pcr-result {
+            background: transparent !important;
+        }
+
+        /* Hex Input Field */
+        .pcr-app .pcr-interaction input {
+            background: var(--bg-input) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 4px !important;
+            box-shadow: none !important;
+            font-family: var(--font-mono) !important; /* Matches your other code inputs */
+            padding: 8px 12px !important;
+        }
+
+        /* Hex Input Focus State */
+        .pcr-app .pcr-interaction input:focus {
+            border-color: var(--border-focus) !important;
+            outline: none !important;
+        }
+
+        /* Save Button */
+        .pcr-app .pcr-interaction .pcr-save {
+            background: var(--accent) !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 4px !important;
+            font-family: var(--font-sans) !important;
+            padding: 8px 16px !important;
+            transition: background 0.2s !important;
+        }
+
+        /* Save Button Hover */
+        .pcr-app .pcr-interaction .pcr-save:hover {
+            background: var(--accent-hover) !important;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Hidden Input for Importing JSON -->
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+
+    <!-- HOME SCREEN -->
+    <div id="view-home" class="active">
+        <div class="home-header">
+            <h1>Bedrock Biome Creator</h1>
+            <p>Design custom biome addons</p>
+        </div>
+        <div class="projects-container">
+            <div class="projects-toolbar">
+                <h2>Your Projects</h2>
+                <button class="btn-standard primary" onclick="openNewProjectModal()">
+                    <svg style="width:16px;height:16px;fill:currentColor;margin-right:4px;" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    New Project
+                </button>
+            </div>
+            <div id="project-list"></div>
+        </div>
+    </div>
+
+    <!-- NEW PROJECT MODAL -->
+    <div id="modal-overlay-new" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Create New Project</h3>
+            <div class="modal-body">
+                <label>Project Name</label>
+                <input type="text" id="new-project-name" placeholder="My Awesome Addon">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-standard" onclick="closeModal('modal-overlay-new')">Cancel</button>
+                <button class="btn-standard primary" onclick="confirmNewProject()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPORT ADDON MODAL -->
+    <div id="modal-overlay-export" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Export Addon (.mcaddon)</h3>
+            <div class="modal-body">
+                <label>Pack Name</label>
+                <input type="text" id="export-pack-name">
+                
+                <label>Description</label>
+                <input type="text" id="export-pack-desc" value="Created with Bedrock Biome Creator">
+                
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label>Version</label>
+                        <input type="text" id="export-pack-version" value="1.0.0">
+                    </div>
+                    <div style="flex:1;">
+                        <label>Min Engine</label>
+                        <input type="text" id="export-min-engine" value="1.26.30">
+                    </div>
+                </div>
+
+                <label>Biomes to Export</label>
+                <div class="biome-checklist" id="export-biome-list">
+                    <!-- Checkboxes injected here -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-standard" onclick="closeModal('modal-overlay-export')">Cancel</button>
+                <button class="btn-standard primary" onclick="performExport()">Export Addon</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDITOR SCREEN -->
+    <div id="view-editor">
+        
+        <!-- Desktop Header -->
+        <div class="desktop-header">
+            <div class="header-left">
+                <button class="icon-btn" onclick="goHome()" title="Back to Projects">
+                    <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <div>
+                    <h1 id="editor-header-title">Project Name</h1>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-standard" onclick="triggerImport()">Import JSON</button>
+                <button class="btn-standard primary" onclick="openExportModal()">Export Addon</button>
+            </div>
+        </div>
+
+        <!-- Biome Tabs Bar -->
+        <div class="tabs-bar">
+            <div class="tabs-container" id="tabs-container"></div>
+            <div class="add-tab-btn" onclick="addNewBiomeTab()" title="Add New Biome">+</div>
+        </div>
+
+        <div class="workspace" id="workspace-container">
+            
+            <!-- Desktop Sidebar -->
+            <div class="sidebar" id="sidebar">
+                <div class="panel-header">
+                    <span class="panel-title">Components</span>
+                    <button class="icon-btn" onclick="toggleSidebar()" id="sidebar-toggle" title="Toggle Components">
+                        <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                    </button>
+                </div>
+                <div class="component-list desktop-components-container" style="padding-bottom: 0;"></div>
+                <div class="client-separator">Client Biome</div>
+                <div class="component-list desktop-client-components-container" style="padding-top: 5px;"></div>
+            </div>
+
+            <!-- Form Body -->
+            <div class="main-content" id="form-container" oninput="handleFormChange(event)" onchange="handleFormChange(event)"></div>
+
+            <!-- Live Preview Panel -->
+            <div class="preview-panel" id="preview-panel">
+                <div class="panel-header">
+                    <div style="display:flex; align-items:center;">
+                        <button class="icon-btn" onclick="togglePreview()" id="preview-toggle" title="Toggle Preview">
+                            <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                        </button>
+                        <span class="panel-title" style="margin-left: 10px;">Live JSON Previews</span>
+                    </div>
+                </div>
+                <div class="preview-content">
+                    
+                    <div class="preview-box">
+                        <div class="preview-box-header">
+                            <span>Server Biome (BP)</span>
+                            <div>
+                                <button class="btn-standard" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyJSON('server')">Copy</button>
+                                <button class="btn-standard primary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="downloadJSON('server')">D/L</button>
+                            </div>
+                        </div>
+                        <div class="preview-box-body">
+                            <pre><code class="language-json" id="json-output-server"></code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-box">
+                        <div class="preview-box-header">
+                            <span>Client Biome (RP)</span>
+                            <div>
+                                <button class="btn-standard" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyJSON('client')">Copy</button>
+                                <button class="btn-standard primary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="downloadJSON('client')">D/L</button>
+                            </div>
+                        </div>
+                        <div class="preview-box-body">
+                            <pre><code class="language-json" id="json-output-client"></code></pre>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            
+            <!-- Mobile Bottom UI -->
+            <div class="mobile-bottom-wrapper">
+                <div class="mobile-components" id="mobile-components-menu">
+                     <div class="mobile-components-label">Server Biome</div>
+                     <div class="mobile-components-row mobile-components-container"></div>
+                     <div class="mobile-components-label">Client Biome</div>
+                     <div class="mobile-components-row mobile-client-components-container"></div>
+                </div>
+                <div class="mobile-nav">
+                    <button class="btn-standard" onclick="goHome()">Back</button>
+                    <button class="btn-standard" onclick="toggleMobileComponents()">Components</button>
+                    <button class="btn-standard" onclick="triggerImport()">Import</button>
+                    <button class="btn-standard primary" onclick="openExportModal()">Export</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Copied to clipboard!</div>
+
+    <script>
+        // --- Schema Definition ---
+        const builderTypes = [
+            "minecraft:overworld", "minecraft:frozen_ocean", "minecraft:mesa", 
+            "minecraft:swamp", "minecraft:capped", "minecraft:the_end", "minecraft:noise_gradient"
+        ];
+
+        const surfaceBuilderSchema = {
+            label: "Surface Builder",
+            desc: "Controls materials used for terrain generation.",
+            fields: [ { id: "type", label: "Builder Type", type: "select", options: builderTypes, default: "minecraft:overworld" } ],
+            subFields: {
+                "minecraft:overworld": [
+                    { id: "top_material", label: "Top Material", type: "text", default: "minecraft:grass_block" },
+                    { id: "mid_material", label: "Mid Material", type: "text", default: "minecraft:dirt" },
+                    { id: "foundation_material", label: "Foundation Material", type: "text", default: "minecraft:stone" },
+                    { id: "sea_material", label: "Sea Material", type: "text", default: "minecraft:water" },
+                    { id: "sea_floor_material", label: "Sea Floor Material", type: "text", default: "minecraft:gravel" },
+                    { id: "sea_floor_depth", label: "Sea Floor Depth", type: "number", default: 7 }
+                ],
+                "minecraft:frozen_ocean": [
+                    { id: "top_material", label: "Top Material", type: "text", default: "minecraft:snow" },
+                    { id: "mid_material", label: "Mid Material", type: "text", default: "minecraft:ice" },
+                    { id: "foundation_material", label: "Foundation Material", type: "text", default: "minecraft:stone" },
+                    { id: "sea_material", label: "Sea Material", type: "text", default: "minecraft:water" },
+                    { id: "sea_floor_material", label: "Sea Floor Material", type: "text", default: "minecraft:gravel" },
+                    { id: "sea_floor_depth", label: "Sea Floor Depth", type: "number", default: 7 }
+                ],
+                "minecraft:swamp": [
+                    { id: "top_material", label: "Top Material", type: "text", default: "minecraft:grass_block" },
+                    { id: "mid_material", label: "Mid Material", type: "text", default: "minecraft:dirt" },
+                    { id: "foundation_material", label: "Foundation Material", type: "text", default: "minecraft:stone" },
+                    { id: "sea_material", label: "Sea Material", type: "text", default: "minecraft:water" },
+                    { id: "sea_floor_material", label: "Sea Floor Material", type: "text", default: "minecraft:dirt" },
+                    { id: "sea_floor_depth", label: "Sea Floor Depth", type: "number", default: 7 },
+                    { id: "max_puddle_depth_below_sea_level", label: "Max Puddle Depth", type: "number", default: 0 }
+                ],
+                "minecraft:mesa": [
+                    { id: "top_material", label: "Top Material", type: "text", default: "minecraft:red_sand" },
+                    { id: "mid_material", label: "Mid Material", type: "text", default: "minecraft:hardened_clay" },
+                    { id: "foundation_material", label: "Foundation Material", type: "text", default: "minecraft:stone" },
+                    { id: "sea_material", label: "Sea Material", type: "text", default: "minecraft:water" },
+                    { id: "sea_floor_material", label: "Sea Floor Material", type: "text", default: "minecraft:gravel" },
+                    { id: "sea_floor_depth", label: "Sea Floor Depth", type: "number", default: 7 },
+                    { id: "clay_material", label: "Clay Material", type: "text", default: "minecraft:hardened_clay" },
+                    { id: "hard_clay_material", label: "Hard Clay Material", type: "text", default: "minecraft:hardened_clay" },
+                    { id: "bryce_pillars", label: "Bryce Pillars", type: "checkbox", default: false },
+                    { id: "has_forest", label: "Has Forest", type: "checkbox", default: false }
+                ],
+                "minecraft:capped": [
+                    { id: "foundation_material", label: "Foundation Material", type: "text", default: "minecraft:stone" },
+                    { id: "sea_material", label: "Sea Material", type: "text", default: "minecraft:water" },
+                    { id: "beach_material", label: "Beach Material (Optional)", type: "text", default: "" },
+                    { id: "ceiling_materials", label: "Ceiling Materials (Comma separated)", type: "text", default: "minecraft:stone" },
+                    { id: "floor_materials", label: "Floor Materials (Comma separated)", type: "text", default: "minecraft:grass_block" }
+                ],
+
+                "minecraft:the_end": [],
+                "minecraft:noise_gradient": [
+                    { id: "nd_name", label: "Noise Descriptor Name", type: "text", default: "minecraft:custom_noise" },
+                    { id: "nd_first_octave", label: "First Octave", type: "number", default: -5 },
+                    { id: "nd_amplitudes", label: "Amplitudes (Comma separated)", type: "text", default: "1.0, 0.0, 1.0" },
+                    { id: "non_replaceable_blocks", label: "Non-Replaceable Blocks", type: "text", default: "minecraft:bedrock" },
+                    { id: "noise_block_specifiers", label: "Noise Block Specifiers", type: "noise_specifiers", default: [ { block: "minecraft:stone", min: 0.0, max: 1.0 } ] }
+                ]
+            }
+
+        };
+
+        const serverSchema = {
+            "minecraft:replace_biomes": {
+                label: "Replace Biomes", required: true, desc: "Replaces portions of existing biomes.", isArray: true,
+                arrayConfig: {
+                    itemTemplate: { amount: 0.1, dimension: "minecraft:overworld", noise_frequency_scale: 1.0, targets: "minecraft:plains" },
+                    fields: [
+                        { id: "amount", label: "Amount (0.0 to 1.0)", type: "number", step: "0.01" },
+                        { id: "dimension", label: "Dimension", type: "select", options: ["minecraft:overworld", "minecraft:nether"] },
+                        { id: "noise_frequency_scale", label: "Noise Freq Scale", type: "number", step: "0.1" },
+                        { id: "targets", label: "Targets", type: "text", placeholder: "minecraft:plains" }
+                    ]
+                }
+            },
+            "minecraft:surface_builder": surfaceBuilderSchema,
+            "minecraft:subsurface_builder": { ...surfaceBuilderSchema, label: "Subsurface Builder", desc: "Applied underneath regular surface." },
+            "minecraft:climate": {
+                label: "Climate", desc: "Temperature, downfall, and snow logic.",
+                fields: [
+                    { id: "temperature", label: "Temperature", type: "number", step: "0.05", default: 0.8 },
+                    { id: "downfall", label: "Downfall", type: "number", step: "0.05", default: 0.4 },
+                    { id: "snow_accumulation_min", label: "Snow Accum Min", type: "number", step: "0.125", default: 0.0 },
+                    { id: "snow_accumulation_max", label: "Snow Accum Max", type: "number", step: "0.125", default: 0.125 }
+                ]
+            },
+            "minecraft:tags": { label: "Tags", desc: "Used by structures, mob spawning, etc.", fields: [ { id: "tags", label: "Tags (Comma sep)", type: "text", default: "overworld" } ] },
+            "minecraft:creature_spawn_probability": { label: "Creature Spawn Probability", desc: "Probability (0.0 - 0.75)", fields: [ { id: "probability", label: "Probability", type: "number", step: "0.01", default: 0.1 } ] },
+            "minecraft:humidity": { label: "Humidity", desc: "Affects fire spread.", fields: [ { id: "is_humid", label: "Is Humid", type: "checkbox", default: true } ] },
+            "minecraft:map_tints": {
+                label: "Map Tints", desc: "Colors for maps.",
+                fields: [
+                    { id: "foliage", label: "Foliage Color (Hex)", type: "color", default: "#4C763C" },
+                    { id: "grass_type", label: "Grass Tint Type", type: "select", options: ["tint", "noise"], default: "tint" },
+                    { id: "grass_tint", label: "Grass Color [If tint]", type: "color", default: "#4C763C" }
+                ]
+            },
+            "minecraft:village_type": { label: "Village Type", desc: "Determines architecture.", fields: [ { id: "type", label: "Type", type: "select", options: ["desert", "ice", "savanna", "taiga", "default"], default: "default" } ] },
+            "minecraft:partially_frozen": { label: "Partially Frozen", desc: "Patchy ice and snow. (No params)", fields: [] },
+            "minecraft:mountain_parameters": {
+                label: "Mountain Parameters", desc: "Noise for mountains.",
+                fields: [
+                    { id: "steep_material_east", label: "East Steep", type: "checkbox", default: false },
+                    { id: "steep_material_north", label: "North Steep", type: "checkbox", default: false },
+                    { id: "steep_material_south", label: "South Steep", type: "checkbox", default: false },
+                    { id: "steep_material_west", label: "West Steep", type: "checkbox", default: false },
+                    { id: "steep_material", label: "Steep Material", type: "text", default: "minecraft:stone" },
+                    { id: "top_slide_enabled", label: "Top Slide Enabled", type: "checkbox", default: false }
+                ]
+            },
+            "minecraft:surface_material_adjustments": {
+                label: "Surface Material Adjustments", desc: "Detail changes based on noise.", isArray: true,
+                arrayConfig: {
+                    itemTemplate: { noise_range_min: -1.0, noise_range_max: 1.0, noise_frequency_scale: 1.0, height_range_min: "", height_range_max: "", top_material: "minecraft:podzol", mid_material: "", foundation_material: "", sea_material: "", sea_floor_material: "" },
+                    fields: [
+                        { id: "noise_range_min", label: "Noise Min", type: "number", step: "0.1" },
+                        { id: "noise_range_max", label: "Noise Max", type: "number", step: "0.1" },
+                        { id: "noise_frequency_scale", label: "Freq Scale", type: "number", step: "0.1" },
+                        { id: "height_range_min", label: "Height Min", type: "text" },
+                        { id: "height_range_max", label: "Height Max", type: "text" },
+                        { id: "top_material", label: "Top Mat", type: "text" },
+                        { id: "mid_material", label: "Mid Mat", type: "text" },
+                        { id: "foundation_material", label: "Foundation Mat", type: "text" }
+                    ]
+                }
+            }
+        };
+
+        const clientSchema = {
+            "minecraft:sky_color": {
+                label: "Sky Color", desc: "Set the sky color used during rendering.",
+                fields: [ { id: "sky_color", label: "Sky Color (Hex)", type: "color", default: "#78A7FF" } ]
+            },
+            "minecraft:water_appearance": {
+                label: "Water Appearance", desc: "Set the water surface color.",
+                fields: [
+                    { id: "surface_color", label: "Surface Color (Hex)", type: "color", default: "#44AFF5" },
+                    { id: "surface_opacity", label: "Surface Opacity (0-1)", type: "number", step: "0.05", default: 1.0 }
+                ]
+            },
+            "minecraft:fog_appearance": {
+                label: "Fog Appearance", desc: "Set the fog settings used during rendering.",
+                fields: [ { id: "fog_identifier", label: "Fog Identifier", type: "text", default: "minecraft:fog_default" } ]
+            },
+            "minecraft:foliage_appearance": {
+                label: "Foliage Appearance", desc: "Set the foliage color used during rendering.",
+                fields: [ { id: "color", label: "Foliage Color (Hex)", type: "color", default: "#4C763C" } ]
+            },
+            "minecraft:grass_appearance": {
+                label: "Grass Appearance", desc: "Set the grass color.",
+                fields: [
+                    { id: "color", label: "Grass Color (Hex)", type: "color", default: "#4C763C" },
+                    { id: "grass_is_shaded", label: "Grass is Shaded", type: "checkbox", default: false }
+                ]
+            },
+            "minecraft:ambient_sounds": {
+                label: "Ambient Sounds", desc: "Set the ambient sounds. Refer to sounds.json keys.",
+                fields: [
+                    { id: "addition", label: "Addition (Sound asset)", type: "text", default: "" },
+                    { id: "addition_chance", label: "Addition Chance (0-1)", type: "number", step: "0.01", default: 0.01 },
+                    { id: "loop", label: "Loop (Sound asset)", type: "text", default: "" },
+                    { id: "mood", label: "Mood (Sound asset)", type: "text", default: "" },
+                    { id: "underwater_addition", label: "Underwater Add. (asset)", type: "text", default: "" },
+                    { id: "underwater_addition_chance", label: "Underwater Add. Chance", type: "number", step: "0.01", default: 0.01 },
+                    { id: "underwater_loop", label: "Underwater Loop (asset)", type: "text", default: "" },
+                    { id: "underwater_mood", label: "Underwater Mood (asset)", type: "text", default: "" }
+                ]
+            },
+            "minecraft:biome_music": {
+                label: "Biome Music", desc: "Affect how music plays within the biome.",
+                fields: [
+                    { id: "music_definition", label: "Music Definition", type: "text", default: "" },
+                    { id: "volume_multiplier", label: "Volume Multiplier", type: "number", step: "0.05", default: 1.0 },
+                    { id: "underwater_music", label: "Underwater Music", type: "checkbox", default: false }
+                ]
+            },
+            "minecraft:atmosphere_identifier": { label: "Atmosphere", desc: "Atmosphere setting identifier.", fields: [ { id: "atmosphere_identifier", label: "Identifier", type: "text", default: "" } ] },
+            "minecraft:color_grading_identifier": { label: "Color Grading", desc: "Color grading identifier.", fields: [ { id: "color_grading_identifier", label: "Identifier", type: "text", default: "" } ] },
+            "minecraft:cubemap_identifier": { label: "Cubemap", desc: "Cubemap identifier.", fields: [ { id: "cubemap_identifier", label: "Identifier", type: "text", default: "" } ] },
+            "minecraft:lighting_identifier": { label: "Lighting", desc: "Lighting definition.", fields: [ { id: "lighting_identifier", label: "Identifier", type: "text", default: "" } ] },
+            "minecraft:water_identifier": { label: "Water Identifier", desc: "Water definition.", fields: [ { id: "water_identifier", label: "Identifier", type: "text", default: "" } ] },
+            "minecraft:dry_foliage_color": { label: "Dry Foliage", desc: "Dry foliage color.", fields: [ { id: "color", label: "Color (Hex)", type: "color", default: "#4C763C" } ] },
+            "minecraft:precipitation": {
+                label: "Precipitation", desc: "Precipitation visuals.",
+                fields: [
+                    { id: "ash", label: "Ash Density", type: "number", step: "0.1", default: 0 },
+                    { id: "blue_spores", label: "Blue Spores Density", type: "number", step: "0.1", default: 0 },
+                    { id: "red_spores", label: "Red Spores Density", type: "number", step: "0.1", default: 0 },
+                    { id: "white_ash", label: "White Ash Density", type: "number", step: "0.1", default: 0 }
+                ]
+            }
+        };
+
+        // --- Application State Management ---
+        let projects = [];
+        let currentProjectId = null;
+        let currentProject = null;
+        let currentBiomeId = null;
+        let exportProjectTargetId = null; // Used for export modal
+
+        function loadLocalData() {
+            try {
+                const saved = localStorage.getItem('bedrockBiomeProjectsV3');
+                if (saved) projects = JSON.parse(saved);
+            } catch (e) { console.error("Error loading local storage", e); }
+        }
+        function saveLocalData() {
+            try {
+                localStorage.setItem('bedrockBiomeProjectsV3', JSON.stringify(projects));
+            } catch (e) { console.error("Error saving local storage", e); }
+        }
+
+        // --- Offline Support (Service Worker) ---
+        function registerOfflineCache() {
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'bedrock-biome-creator-v2';
+                    const ASSETS_TO_CACHE = [
+                        location.href,
+                        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs2015.min.css',
+                        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js',
+                        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+                        'https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/monolith.min.css',
+                        'https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js',
+                        'https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;500;600&display=swap'
+                    ];
+
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
+                        );
+                    });
+
+                    self.addEventListener('fetch', event => {
+                        const url = new URL(event.request.url);
+
+                        // Runtime caching specifically for Google Fonts files
+                        if (url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com') {
+                            event.respondWith(
+                                caches.match(event.request).then(cachedResponse => {
+                                    if (cachedResponse) {
+                                        return cachedResponse;
+                                    }
+                                    return fetch(event.request).then(networkResponse => {
+                                        // Cache the fetched font for next time
+                                        if (networkResponse && networkResponse.status === 200) {
+                                            const responseToCache = networkResponse.clone();
+                                            caches.open(CACHE_NAME).then(cache => {
+                                                cache.put(event.request, responseToCache);
+                                            });
+                                        }
+                                        return networkResponse;
+                                    });
+                                })
+                            );
+                            return; // Stop execution here for fonts
+                        }
+
+                        // Standard Cache-First approach for everything else
+                        event.respondWith(
+                            caches.match(event.request).then(cachedResponse => {
+                                return cachedResponse || fetch(event.request);
+                            })
+                        );
+                    });
+                `;
+                
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+
+                navigator.serviceWorker.register(swUrl).then(() => {
+                    console.log('Offline caching enabled with dynamic font saving.');
+                }).catch(err => {
+                    console.error('Service Worker registration failed:', err);
+                });
+            }
+        }
+
+
+        function initApp() { 
+            registerOfflineCache(); // Start caching assets for offline use
+            loadLocalData();
+            renderHome(); 
+        }
+
+
+        function getCurrentBiome() {
+            if (!currentProject || !currentBiomeId) return null;
+            return currentProject.biomes.find(b => b.id === currentBiomeId);
+        }
+
+        // --- View Switching & Modals ---
+        function showView(viewId) {
+            document.getElementById('view-home').classList.remove('active');
+            document.getElementById('view-editor').classList.remove('active');
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function goHome() {
+            currentProjectId = null;
+            currentProject = null;
+            currentBiomeId = null;
+            renderHome();
+            showView('view-home');
+        }
+
+        function openNewProjectModal() {
+            const input = document.getElementById('new-project-name');
+            input.value = "My Awesome Addon";
+            document.getElementById('modal-overlay-new').classList.add('active');
+            input.focus(); input.select();
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function confirmNewProject() {
+            const name = document.getElementById('new-project-name').value.trim();
+            if (!name) return;
+            
+            closeModal('modal-overlay-new');
+            const projId = Date.now().toString();
+            const newBiome = createDefaultBiomeState("custom:new_biome");
+            
+            const proj = { id: projId, name: name, biomes: [newBiome] };
+            projects.push(proj);
+            saveLocalData();
+            openProject(proj.id);
+        }
+
+        function openProject(id) {
+            const proj = projects.find(p => p.id === id);
+            if (!proj) return;
+            currentProjectId = proj.id;
+            currentProject = JSON.parse(JSON.stringify(proj));
+            currentBiomeId = currentProject.biomes.length > 0 ? currentProject.biomes[0].id : null;
+            
+            document.getElementById('editor-header-title').textContent = currentProject.name;
+            showView('view-editor');
+            
+            renderTabs();
+            renderComponents();
+            renderForm();
+            generateJSONDOM();
+        }
+
+        function deleteProject(id, event) {
+            event.stopPropagation();
+            if (confirm("Are you sure you want to delete this project?")) {
+                projects = projects.filter(p => p.id !== id);
+                saveLocalData();
+                renderHome();
+            }
+        }
+
+        function renderHome() {
+            const list = document.getElementById('project-list');
+            if (projects.length === 0) {
+                list.innerHTML = `<div class="empty-state">No projects found. Create one to get started!</div>`;
+                return;
+            }
+
+            let html = '';
+            [...projects].reverse().forEach(proj => {
+                const date = new Date(parseInt(proj.id)).toLocaleDateString();
+                const biomeCount = proj.biomes.length;
+                html += `
+                    <div class="project-card">
+                        <div class="project-info" onclick="openProject('${proj.id}')">
+                            <div class="project-title">${proj.name}</div>
+                            <div class="project-meta">Created: ${date} &bull; ${biomeCount} Biome${biomeCount !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div class="project-actions">
+                            <button class="btn-standard" onclick="openExportModal('${proj.id}', event)">Export</button>
+                            <button class="btn-standard" onclick="openProject('${proj.id}')">Edit</button>
+                            <button class="btn-standard danger" onclick="deleteProject('${proj.id}', event)">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        // --- Tabs Management ---
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            if (!currentProject) return;
+            let html = '';
+            currentProject.biomes.forEach(biome => {
+                const isActive = biome.id === currentBiomeId;
+                const displayName = biome.identifier || "unnamed_biome";
+                html += `
+                    <div class="tab ${isActive ? 'active' : ''}" onclick="switchBiome('${biome.id}')">
+                        <span>${displayName}</span>
+                        ${currentProject.biomes.length > 1 ? `<span class="tab-close" onclick="deleteBiomeTab('${biome.id}', event)">&times;</span>` : ''}
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function switchBiome(biomeId) {
+            if (currentBiomeId === biomeId) return;
+            currentBiomeId = biomeId;
+            renderTabs(); renderComponents(); renderForm(); generateJSONDOM();
+        }
+
+        function addNewBiomeTab() {
+            const newBiome = createDefaultBiomeState("custom:new_biome_" + Math.floor(Math.random() * 100));
+            currentProject.biomes.push(newBiome);
+            currentBiomeId = newBiome.id;
+            
+            syncProject(); renderTabs(); renderComponents(); renderForm(); generateJSONDOM();
+            const container = document.getElementById('tabs-container');
+            setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 50);
+        }
+
+        function deleteBiomeTab(biomeId, event) {
+            event.stopPropagation();
+            if (currentProject.biomes.length <= 1) return;
+            if (confirm("Delete this biome?")) {
+                currentProject.biomes = currentProject.biomes.filter(b => b.id !== biomeId);
+                if (currentBiomeId === biomeId) currentBiomeId = currentProject.biomes[0].id;
+                syncProject(); renderTabs(); renderComponents(); renderForm(); generateJSONDOM();
+            }
+        }
+
+        function createDefaultBiomeState(identifierStr) {
+            const state = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                identifier: identifierStr,
+                format_version: "1.26.30",
+                activeComponents: ["minecraft:replace_biomes", "minecraft:climate", "minecraft:tags"],
+                clientActiveComponents: ["minecraft:sky_color", "minecraft:foliage_appearance", "minecraft:grass_appearance", "minecraft:water_appearance"],
+                data: {},
+                clientData: {}
+            };
+            
+            // Server
+            Object.keys(serverSchema).forEach(compKey => {
+                const schema = serverSchema[compKey];
+                state.data[compKey] = {};
+                if (schema.isArray) {
+                    state.data[compKey] = [ JSON.parse(JSON.stringify(schema.arrayConfig.itemTemplate)) ];
+                } else if (schema.fields) {
+                    schema.fields.forEach(f => state.data[compKey][f.id] = f.default);
+                    if (schema.subFields) {
+                        const type = state.data[compKey].type;
+                        if (schema.subFields[type]) {
+                            schema.subFields[type].forEach(f => state.data[compKey][f.id] = f.default);
+                        }
+                    }
+                }
+            });
+
+            // Client
+            Object.keys(clientSchema).forEach(compKey => {
+                const schema = clientSchema[compKey];
+                state.clientData[compKey] = {};
+                if (schema.fields) {
+                    schema.fields.forEach(f => state.clientData[compKey][f.id] = f.default);
+                }
+            });
+
+            return state;
+        }
+
+        function syncProject() {
+            if (!currentProjectId) return;
+            const idx = projects.findIndex(p => p.id === currentProjectId);
+            if (idx > -1) {
+                projects[idx] = JSON.parse(JSON.stringify(currentProject));
+                saveLocalData();
+            }
+        }
+
+        // --- Importing JSON ---
+        function triggerImport() { document.getElementById('import-file').click(); }
+
+        function importJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    processImport(parsed);
+                    e.target.value = ''; // reset
+                } catch (err) {
+                    console.error("Invalid JSON", err);
+                    showToast("Invalid JSON File");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function processImport(json) {
+            const isServer = !!json["minecraft:biome"];
+            const isClient = !!json["minecraft:client_biome"];
+            
+            if (!isServer && !isClient) {
+                showToast("Invalid Biome JSON");
+                return;
+            }
+
+            const biome = getCurrentBiome();
+            if (!biome) return;
+
+            if (isServer) {
+                const biomeDef = json["minecraft:biome"];
+                const importedFormat = json.format_version;
+                const importedId = biomeDef.description?.identifier;
+
+                if (importedFormat && importedFormat !== biome.format_version) {
+                    biome.revertFormatVersion = biome.format_version;
+                    biome.format_version = importedFormat;
+                }
+                if (importedId && importedId !== biome.identifier) {
+                    biome.revertIdentifier = biome.identifier;
+                    biome.identifier = importedId;
+                    renderTabs();
+                }
+
+                const comps = biomeDef.components;
+                if (comps) {
+                    Object.keys(comps).forEach(key => {
+                        if (serverSchema[key]) {
+                            if (!biome.activeComponents.includes(key)) biome.activeComponents.push(key);
+                            parseImportedServerComponent(key, comps[key], biome.data[key]);
+                        }
+                    });
+                }
+            }
+
+            if (isClient) {
+                const biomeDef = json["minecraft:client_biome"];
+                const importedId = biomeDef.description?.identifier;
+                // Client uses the same identifier block, if it's new, set revert.
+                if (importedId && importedId !== biome.identifier) {
+                    if (!biome.revertIdentifier) biome.revertIdentifier = biome.identifier;
+                    biome.identifier = importedId;
+                    renderTabs();
+                }
+
+                const comps = biomeDef.components;
+                if (comps) {
+                    Object.keys(comps).forEach(key => {
+                        if (clientSchema[key]) {
+                            if (!biome.clientActiveComponents.includes(key)) biome.clientActiveComponents.push(key);
+                            parseImportedClientComponent(key, comps[key], biome.clientData[key]);
+                        }
+                    });
+                }
+            }
+            
+            syncProject();
+            renderComponents();
+            renderForm();
+            generateJSONDOM();
+            showToast("Imported successfully");
+        }
+
+        function parseImportedServerComponent(key, compData, targetData) {
+            if (key === 'minecraft:replace_biomes' && compData.replacements) {
+                targetData.length = 0;
+                compData.replacements.forEach(r => {
+                    targetData.push({
+                        amount: r.amount || 0, dimension: r.dimension || "minecraft:overworld",
+                        noise_frequency_scale: r.noise_frequency_scale || 0,
+                        targets: r.targets ? (Array.isArray(r.targets) ? r.targets.join(', ') : r.targets) : ""
+                    });
+                });
+            }
+            else if (key === 'minecraft:surface_builder' || key === 'minecraft:subsurface_builder') {
+                if (compData.builder) {
+                    const b = compData.builder;
+                    targetData.type = b.type || "minecraft:overworld";
+                    ["top_material", "mid_material", "foundation_material", "sea_material", "sea_floor_material", "sea_floor_depth", "clay_material", "hard_clay_material", "bryce_pillars", "has_forest"].forEach(f => {
+                        if (b[f] !== undefined) targetData[f] = b[f];
+                    });
+                    if (b.ceiling_materials) targetData.ceiling_materials = Array.isArray(b.ceiling_materials) ? b.ceiling_materials.join(', ') : b.ceiling_materials;
+                    if (b.floor_materials) targetData.floor_materials = Array.isArray(b.floor_materials) ? b.floor_materials.join(', ') : b.floor_materials;
+
+
+                    if (b.type === 'minecraft:noise_gradient') {
+                        if (b.noise_descriptor) {
+                            targetData.nd_name = b.noise_descriptor.name || "";
+                            targetData.nd_first_octave = b.noise_descriptor.first_octave !== undefined ? b.noise_descriptor.first_octave : -4;
+                            if (b.noise_descriptor.amplitudes) targetData.nd_amplitudes = b.noise_descriptor.amplitudes.join(', ');
+                        }
+                        if (b.non_replaceable_blocks) targetData.non_replaceable_blocks = b.non_replaceable_blocks.join(', ');
+                        if (b.noise_block_specifiers) {
+                            targetData.noise_block_specifiers = b.noise_block_specifiers.map(spec => {
+                                return {
+                                    block: spec.block || "minecraft:stone", noise: spec.noise || "",
+                                    threshold: spec.threshold !== undefined ? spec.threshold : "",
+                                    min: spec.range ? spec.range.min : "", max: spec.range ? spec.range.max : ""
+                                };
+                            });
+                        }
+                    }
+                }
+            }
+            else if (key === 'minecraft:climate') {
+                if (compData.temperature !== undefined) targetData.temperature = compData.temperature;
+                if (compData.downfall !== undefined) targetData.downfall = compData.downfall;
+                if (compData.snow_accumulation && compData.snow_accumulation.length >= 2) {
+                    targetData.snow_accumulation_min = compData.snow_accumulation[0];
+                    targetData.snow_accumulation_max = compData.snow_accumulation[1];
+                }
+            }
+            else if (key === 'minecraft:tags') {
+                if (compData.tags) targetData.tags = compData.tags.join(', ');
+            }
+            else if (key === 'minecraft:map_tints') {
+                if (compData.foliage) targetData.foliage = compData.foliage;
+                if (compData.grass) {
+                    targetData.grass_type = compData.grass.type || "tint";
+                    if (compData.grass.tint) targetData.grass_tint = compData.grass.tint;
+                }
+            }
+            else if (key === 'minecraft:mountain_parameters') {
+                if (compData.steep_material_adjustment) {
+                    const s = compData.steep_material_adjustment;
+                    targetData.steep_material_east = !!s.east_slopes; targetData.steep_material_north = !!s.north_slopes;
+                    targetData.steep_material_south = !!s.south_slopes; targetData.steep_material_west = !!s.west_slopes;
+                    targetData.steep_material = s.material || "";
+                }
+                if (compData.top_slide) targetData.top_slide_enabled = !!compData.top_slide.enabled;
+            }
+            else if (key === 'minecraft:surface_material_adjustments') {
+                if (compData.adjustments) {
+                    targetData.length = 0;
+                    compData.adjustments.forEach(adj => {
+                        targetData.push({
+                            noise_range_min: adj.noise_range ? adj.noise_range[0] : "", noise_range_max: adj.noise_range ? adj.noise_range[1] : "",
+                            noise_frequency_scale: adj.noise_frequency_scale !== undefined ? adj.noise_frequency_scale : "",
+                            height_range_min: adj.height_range ? adj.height_range[0] : "", height_range_max: adj.height_range ? adj.height_range[1] : "",
+                            top_material: adj.materials?.top_material || "", mid_material: adj.materials?.mid_material || "",
+                            foundation_material: adj.materials?.foundation_material || "", sea_material: adj.materials?.sea_material || "", sea_floor_material: adj.materials?.sea_floor_material || ""
+                        });
+                    });
+                }
+            }
+            else if (key === 'minecraft:creature_spawn_probability') {
+                if (compData.probability !== undefined) targetData.probability = compData.probability;
+            }
+            else if (key === 'minecraft:humidity') {
+                if (compData.is_humid !== undefined) targetData.is_humid = compData.is_humid;
+            }
+            else if (key === 'minecraft:village_type') {
+                if (compData.type) targetData.type = compData.type;
+            }
+        }
+
+        function parseImportedClientComponent(key, compData, targetData) {
+            // Straightforward mapping since we flat schema for clients mostly
+            if (key === 'minecraft:sky_color') targetData.sky_color = compData.sky_color || "#78A7FF";
+            if (key === 'minecraft:water_appearance') { targetData.surface_color = compData.surface_color || "#44AFF5"; targetData.surface_opacity = compData.surface_opacity || 1.0; }
+            if (key === 'minecraft:fog_appearance') targetData.fog_identifier = compData.fog_identifier || "minecraft:fog_default";
+            if (key === 'minecraft:foliage_appearance') targetData.color = compData.color || "#4C763C";
+            if (key === 'minecraft:grass_appearance') { targetData.color = compData.color || "#4C763C"; targetData.grass_is_shaded = !!compData.grass_is_shaded; }
+            if (key === 'minecraft:ambient_sounds') {
+                if (compData.addition) { targetData.addition = compData.addition.asset || ""; targetData.addition_chance = compData.addition.chance || 0.01; }
+                if (compData.underwater_addition) { targetData.underwater_addition = compData.underwater_addition.asset || ""; targetData.underwater_addition_chance = compData.underwater_addition.chance || 0.01; }
+                targetData.loop = compData.loop || ""; targetData.mood = compData.mood || "";
+                targetData.underwater_loop = compData.underwater_loop || ""; targetData.underwater_mood = compData.underwater_mood || "";
+            }
+            if (key === 'minecraft:biome_music') {
+                targetData.music_definition = compData.music_definition || ""; targetData.volume_multiplier = compData.volume_multiplier || 1.0; targetData.underwater_music = !!compData.underwater_music;
+            }
+            if (key === 'minecraft:precipitation') {
+                targetData.ash = compData.ash || 0; targetData.blue_spores = compData.blue_spores || 0; targetData.red_spores = compData.red_spores || 0; targetData.white_ash = compData.white_ash || 0;
+            }
+            ["atmosphere_identifier", "color_grading_identifier", "cubemap_identifier", "lighting_identifier", "water_identifier"].forEach(id => {
+                if (key === `minecraft:${id}`) targetData[id] = compData[id] || "";
+            });
+            if (key === 'minecraft:dry_foliage_color') targetData.color = compData.color || "#4C763C";
+        }
+
+        // --- Revert Handlers ---
+        function revertIdentifier() {
+            const biome = getCurrentBiome();
+            if (biome && biome.revertIdentifier) {
+                biome.identifier = biome.revertIdentifier;
+                delete biome.revertIdentifier;
+                renderTabs(); renderForm(); generateJSONDOM(); syncProject();
+            }
+        }
+        function revertFormatVersion() {
+            const biome = getCurrentBiome();
+            if (biome && biome.revertFormatVersion) {
+                biome.format_version = biome.revertFormatVersion;
+                delete biome.revertFormatVersion;
+                renderForm(); generateJSONDOM(); syncProject();
+            }
+        }
+
+        // --- Editor UI Collapse Logic ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const btn = document.getElementById('sidebar-toggle');
+            sidebar.classList.toggle('collapsed');
+            
+            btn.innerHTML = sidebar.classList.contains('collapsed') 
+                ? '<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>'
+                : '<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>';
+        }
+
+        function togglePreview() {
+            const panel = document.getElementById('preview-panel');
+            const btn = document.getElementById('preview-toggle');
+            panel.classList.toggle('collapsed');
+            
+            btn.innerHTML = panel.classList.contains('collapsed')
+                ? '<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>'
+                : '<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>';
+        }
+
+        function toggleMobileComponents() {
+            const menu = document.getElementById('mobile-components-menu');
+            const workspace = document.getElementById('workspace-container');
+            menu.classList.toggle('active');
+            if (menu.classList.contains('active')) workspace.classList.add('components-open');
+            else workspace.classList.remove('components-open');
+        }
+
+        // --- Editor Builder Logic ---
+        function toggleComponent(compKey, isClient) {
+            const biome = getCurrentBiome();
+            if (!biome) return;
+            const schema = isClient ? clientSchema[compKey] : serverSchema[compKey];
+            if (schema && schema.required) return;
+            
+            const list = isClient ? biome.clientActiveComponents : biome.activeComponents;
+            const index = list.indexOf(compKey);
+            if (index > -1) list.splice(index, 1);
+            else list.push(compKey);
+            
+            syncProject();
+            renderComponents();
+            renderForm();
+            generateJSONDOM();
+        }
+
+        function renderComponents() {
+            const biome = getCurrentBiome();
+            if (!biome) return;
+            
+            let serverHtml = '';
+            Object.keys(serverSchema).forEach(key => {
+                const schema = serverSchema[key];
+                const isActive = biome.activeComponents.includes(key);
+                const cls = `toggle-item ${isActive ? 'active' : ''} ${schema.required ? 'required' : ''}`;
+                serverHtml += `<label class="${cls}"><input type="checkbox" ${isActive ? 'checked' : ''} ${schema.required ? 'disabled' : ''} onchange="toggleComponent('${key}', false)"><span>${key.replace('minecraft:', '')}</span></label>`;
+            });
+
+            let clientHtml = '';
+            Object.keys(clientSchema).forEach(key => {
+                const schema = clientSchema[key];
+                const isActive = biome.clientActiveComponents.includes(key);
+                const cls = `toggle-item ${isActive ? 'active' : ''}`;
+                clientHtml += `<label class="${cls}"><input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleComponent('${key}', true)"><span>${key.replace('minecraft:', '')}</span></label>`;
+            });
+
+            document.querySelectorAll('.desktop-components-container, .mobile-components-container').forEach(c => c.innerHTML = serverHtml);
+            document.querySelectorAll('.desktop-client-components-container, .mobile-client-components-container').forEach(c => c.innerHTML = clientHtml);
+        }
+
+        function renderForm() {
+            const container = document.getElementById('form-container');
+            const biome = getCurrentBiome();
+            if (!biome) { container.innerHTML = ""; return; }
+
+            const revertSvg = `<svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C20.76 11.03 17.05 8 12.5 8z"/></svg>`;
+
+            let html = `
+                <div class="card required">
+                    <div class="card-header"><div class="card-title">Biome Definition (Shared)</div></div>
+                    <div class="card-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Server Format Version</label>
+                                <div class="flex-row">
+                                    <input type="text" data-component="root" data-field="format_version" value="${biome.format_version || '1.26.30'}" style="font-family: var(--font-mono)">
+                                    ${biome.revertFormatVersion ? `<button class="icon-btn" style="color:var(--accent)" title="Revert to ${biome.revertFormatVersion}" onclick="revertFormatVersion()">${revertSvg}</button>` : ''}
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Identifier (Namespace Required)</label>
+                                <div class="flex-row">
+                                    <input type="text" data-component="root" data-field="identifier" value="${biome.identifier}" style="font-family: var(--font-mono)">
+                                    ${biome.revertIdentifier ? `<button class="icon-btn" style="color:var(--accent)" title="Revert to ${biome.revertIdentifier}" onclick="revertIdentifier()">${revertSvg}</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Server Components
+            biome.activeComponents.forEach(compKey => {
+                const schema = serverSchema[compKey];
+                const data = biome.data[compKey];
+                
+                html += `
+                    <div class="card ${schema.required ? 'required' : ''}">
+                        <div class="card-header">
+                            <div class="card-title">${schema.label} ${schema.required ? '<span class="badge-required">Required</span>' : ''}</div>
+                            <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted)">${compKey}</span>
+                        </div>
+                        <div class="card-body"><div class="card-desc">${schema.desc}</div>
+                `;
+
+                if (schema.isArray) {
+                    data.forEach((item, idx) => {
+                        html += `<div class="array-item">`;
+                        if (data.length > 1) html += `<button type="button" class="btn-standard danger array-remove-btn" onclick="removeArrayItem('${compKey}', ${idx}, false)">Remove</button>`;
+                        html += `<div class="form-grid">`;
+                        schema.arrayConfig.fields.forEach(field => { html += renderField(compKey, field, item[field.id], false, idx); });
+                        html += `</div></div>`;
+                    });
+                    html += `<button class="btn-standard" type="button" onclick="addArrayItem('${compKey}', false)">+ Add Item</button>`;
+                } else if (!schema.fields || schema.fields.length === 0) {
+                    html += `<div style="font-style: italic; color: var(--text-muted); font-size: 0.85rem">Component active. No configuration needed.</div>`;
+                } else {
+                    html += `<div class="form-grid">`;
+                    schema.fields.forEach(field => { html += renderField(compKey, field, data[field.id], false); });
+                    if (schema.subFields && data.type && schema.subFields[data.type]) {
+                        schema.subFields[data.type].forEach(field => {
+                            let val = data[field.id];
+                            if (val === undefined) val = field.default; 
+                            html += renderField(compKey, field, val, false);
+                        });
+                    }
+                    html += `</div>`;
+                }
+                html += `</div></div>`;
+            });
+
+            // Client Separator
+            if (biome.clientActiveComponents.length > 0) {
+                html += `<div class="client-section-title">Client Biome Settings</div>`;
+            }
+
+            // Client Components
+            biome.clientActiveComponents.forEach(compKey => {
+                const schema = clientSchema[compKey];
+                const data = biome.clientData[compKey];
+                
+                html += `
+                    <div class="card" style="border-color: #607d8b;">
+                        <div class="card-header" style="background: rgba(96, 125, 139, 0.1);">
+                            <div class="card-title">${schema.label}</div>
+                            <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted)">${compKey}</span>
+                        </div>
+                        <div class="card-body"><div class="card-desc">${schema.desc}</div>
+                `;
+                html += `<div class="form-grid">`;
+                schema.fields.forEach(field => { html += renderField(compKey, field, data[field.id], true); });
+                html += `</div></div></div>`;
+            });
+
+            container.innerHTML = html;
+            
+            // Initialize custom color pickers on the newly rendered HTML
+            initCustomColorPickers();
+        }
+
+
+        function renderField(compKey, field, value, isClient, arrayIndex = null) {
+            const biome = getCurrentBiome();
+            const dataAttrs = `data-component="${compKey}" data-field="${field.id}" ${arrayIndex !== null ? `data-index="${arrayIndex}"` : ''} data-type="${field.type}" data-is-client="${isClient}"`;
+            
+            if (field.type === 'noise_specifiers') {
+                // Ensure default exists in actual data to prevent UI/JSON desync
+                if (!biome.data[compKey][field.id]) {
+                    biome.data[compKey][field.id] = field.default ? JSON.parse(JSON.stringify(field.default)) : [ { block: "minecraft:stone", min: 0.0, max: 1.0 } ];
+                }
+                const items = biome.data[compKey][field.id];
+                let html = `<div class="form-group full-width"><label style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">${field.label}</label>`;
+
+                items.forEach((item, idx) => {
+                    html += `
+                    <div class="array-item" style="padding-top: 35px;">
+                        <button type="button" class="btn-standard danger array-remove-btn" onclick="removeNoiseSpecifier('${compKey}', '${field.id}', ${idx})">Remove</button>
+                        <div class="form-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;">
+                            <div><label>Block</label><input type="text" value="${item.block || ''}" oninput="updateNoiseSpecifier('${compKey}', '${field.id}', ${idx}, 'block', this.value)"></div>
+                            <div><label>Noise ID (Opt)</label><input type="text" value="${item.noise || ''}" oninput="updateNoiseSpecifier('${compKey}', '${field.id}', ${idx}, 'noise', this.value)"></div>
+                            <div><label>Threshold (Opt)</label><input type="number" step="0.01" value="${item.threshold !== undefined ? item.threshold : ''}" oninput="updateNoiseSpecifier('${compKey}', '${field.id}', ${idx}, 'threshold', this.value)"></div>
+                            <div><label>Range Min (Opt)</label><input type="number" step="0.01" value="${item.min !== undefined ? item.min : ''}" oninput="updateNoiseSpecifier('${compKey}', '${field.id}', ${idx}, 'min', this.value)"></div>
+                            <div><label>Range Max (Opt)</label><input type="number" step="0.01" value="${item.max !== undefined ? item.max : ''}" oninput="updateNoiseSpecifier('${compKey}', '${field.id}', ${idx}, 'max', this.value)"></div>
+                        </div>
+                    </div>`;
+                });
+                html += `<button type="button" class="btn-standard" onclick="addNoiseSpecifier('${compKey}', '${field.id}')">+ Add Specifier</button></div>`;
+                return html;
+            }
+
+            let html = `<div class="form-group ${field.type === 'textarea' || (field.type === 'text' && field.id === 'targets') || field.id === 'non_replaceable_blocks' ? 'full-width' : ''}">`;
+            if (field.type === 'checkbox') {
+                html += `<label class="checkbox-label"><input type="checkbox" ${dataAttrs} ${value ? 'checked' : ''}><span>${field.label}</span></label>`;
+            } else if (field.type === 'select') {
+                html += `<label>${field.label}</label><select ${dataAttrs}>`;
+                field.options.forEach(opt => { html += `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`; });
+                html += `</select>`;
+            } else if (field.type === 'textarea') {
+                html += `<label>${field.label}</label><textarea ${dataAttrs}>${value}</textarea>`;
+            } else {
+                html += `<label>${field.label}</label><input type="${field.type}" ${field.step ? `step="${field.step}"` : ''} ${field.placeholder ? `placeholder="${field.placeholder}"` : ''} ${dataAttrs} value="${value}">`;
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        // --- Custom Nested Handlers ---
+        function addNoiseSpecifier(compKey, fieldId) { 
+            const biome = getCurrentBiome(); if(!biome) return;
+            if (!biome.data[compKey][fieldId]) biome.data[compKey][fieldId] = [];
+            biome.data[compKey][fieldId].push({ block: "minecraft:stone", min: 0.0, max: 1.0 }); 
+            syncProject(); renderForm(); generateJSONDOM(); 
+        }
+
+        function removeNoiseSpecifier(compKey, fieldId, idx) { 
+            const biome = getCurrentBiome(); if(!biome) return;
+            if (!biome.data[compKey][fieldId]) return;
+            biome.data[compKey][fieldId].splice(idx, 1); 
+            syncProject(); renderForm(); generateJSONDOM(); 
+        }
+        function updateNoiseSpecifier(compKey, fieldId, idx, prop, val) {
+            const biome = getCurrentBiome(); if(!biome) return;
+            if (prop === 'threshold' || prop === 'min' || prop === 'max') val = val === "" ? "" : parseFloat(val);
+            if (!biome.data[compKey][fieldId]) biome.data[compKey][fieldId] = [];
+            if (!biome.data[compKey][fieldId][idx]) biome.data[compKey][fieldId][idx] = {};
+            biome.data[compKey][fieldId][idx][prop] = val; 
+            syncProject(); generateJSONDOM(); 
+        }
+
+
+        // --- Custom Color Picker Setup ---
+        function initCustomColorPickers() {
+            // Find all color inputs that haven't been overridden yet
+            document.querySelectorAll('input[type="color"]:not(.pickr-processed)').forEach(input => {
+                input.classList.add('pickr-processed');
+                
+                // Hide the native input but keep it in the DOM for your data syncing
+                input.style.display = 'none'; 
+
+                // Create a container for Pickr next to the hidden input
+                const pickrContainer = document.createElement('div');
+                input.parentNode.insertBefore(pickrContainer, input.nextSibling);
+
+                // Initialize Pickr
+                const pickr = Pickr.create({
+                    el: pickrContainer,
+                    theme: 'monolith',
+                    default: input.value || '#000000',
+                    components: {
+                        preview: true,
+                        opacity: false, // Disables alpha/transparency
+                        hue: true,
+                        interaction: {
+                            hex: false,
+                            rgba: false,
+                            hsla: false,
+                            hsva: false,
+                            cmyk: false,
+                            input: true, // Allows typing hex directly
+                            clear: false,
+                            save: true
+                        }
+                    }
+                });
+
+                // Helper to enforce strict 6-digit hex (e.g., prevents #fff)
+                const getStrictHex = (color) => {
+                    let hex = color.toHEXA().toString();
+                    if (hex.length === 4) {
+                        hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+                    }
+                    return hex.toUpperCase();
+                };
+
+                // Sync Pickr changes back to your hidden input
+                pickr.on('save', (color, instance) => {
+                    input.value = getStrictHex(color);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    instance.hide();
+                }).on('change', (color) => {
+                    input.value = getStrictHex(color);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            });
+        }
+
+
+        // --- Generic Handlers ---
+        function handleFormChange(e) {
+            const t = e.target;
+            if (!t.hasAttribute('data-field')) return;
+
+            const biome = getCurrentBiome();
+            if(!biome) return;
+
+            const comp = t.getAttribute('data-component');
+            const field = t.getAttribute('data-field');
+            const type = t.getAttribute('data-type') || t.type;
+            const isClient = t.getAttribute('data-is-client') === 'true';
+            const isArrayItem = t.hasAttribute('data-index');
+            
+            let val = t.value;
+            if (type === 'checkbox') val = t.checked;
+            if (type === 'number') val = parseFloat(val) || 0;
+
+            if (comp === 'root') {
+                if (field === 'identifier') {
+                    biome.identifier = val;
+                    renderTabs();
+                } else if (field === 'format_version') {
+                    biome.format_version = val;
+                }
+            } else if (isArrayItem) {
+                const tgt = isClient ? biome.clientData : biome.data;
+                tgt[comp][parseInt(t.getAttribute('data-index'))][field] = val;
+            } else {
+                const tgt = isClient ? biome.clientData : biome.data;
+                tgt[comp][field] = val;
+                if (!isClient && field === 'type' && serverSchema[comp].subFields) {
+                    if (serverSchema[comp].subFields[val]) {
+                        serverSchema[comp].subFields[val].forEach(f => {
+                            if (tgt[comp][f.id] === undefined) {
+                                tgt[comp][f.id] = Array.isArray(f.default) ? JSON.parse(JSON.stringify(f.default)) : f.default;
+                            }
+                        });
+                    }
+                    renderForm();
+                }
+            }
+            syncProject();
+            generateJSONDOM();
+        }
+
+
+        function addArrayItem(compKey, isClient) { 
+            const biome = getCurrentBiome(); if(!biome) return;
+            const schema = isClient ? clientSchema[compKey] : serverSchema[compKey];
+            const tgt = isClient ? biome.clientData : biome.data;
+            tgt[compKey].push({...schema.arrayConfig.itemTemplate}); 
+            syncProject(); renderForm(); generateJSONDOM(); 
+        }
+        function removeArrayItem(compKey, index, isClient) { 
+            const biome = getCurrentBiome(); if(!biome) return;
+            const tgt = isClient ? biome.clientData : biome.data;
+            tgt[compKey].splice(index, 1); 
+            syncProject(); renderForm(); generateJSONDOM(); 
+        }
+
+        function safeJSONParse(str, fallback) { if (!str) return fallback; try { return JSON.parse(str); } catch (e) { return fallback; } }
+
+        function getBiomeJSONStrings(biome) {
+            if (!biome) return { server: "", client: "" };
+
+            // SERVER JSON
+            const serverBiomeDef = { description: { identifier: biome.identifier || "custom:unnamed" }, components: {} };
+
+            biome.activeComponents.forEach(comp => {
+                const data = biome.data[comp];
+                switch(comp) {
+                    case 'minecraft:replace_biomes':
+                        serverBiomeDef.components[comp] = {
+                            replacements: data.map(r => ({
+                                amount: r.amount, dimension: r.dimension, noise_frequency_scale: r.noise_frequency_scale,
+                                targets: typeof r.targets === 'string' ? r.targets.split(',').map(s => s.trim()).filter(s => s) : r.targets
+                            }))
+                        }; break;
+                    
+                    case 'minecraft:surface_builder':
+                    case 'minecraft:subsurface_builder':
+                        const bType = data.type;
+                        let builderObj = { type: bType };
+                        if (bType === 'minecraft:noise_gradient') {
+                            builderObj.noise_descriptor = {
+                                name: data.nd_name || "minecraft:custom_noise",
+                                first_octave: parseFloat(data.nd_first_octave) || -4,
+                                amplitudes: (data.nd_amplitudes || "").split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n))
+                            };
+                            const nonRep = (data.non_replaceable_blocks || "").split(',').map(s => s.trim()).filter(s => s);
+                            if (nonRep.length > 0) builderObj.non_replaceable_blocks = nonRep;
+                            
+                            builderObj.noise_block_specifiers = (data.noise_block_specifiers || []).map(spec => {
+                                const out = { block: spec.block || "minecraft:stone" };
+                                if (spec.noise && spec.noise.trim() !== "") out.noise = spec.noise;
+                                if (spec.threshold !== undefined && spec.threshold !== "") out.threshold = spec.threshold;
+                                if (spec.min !== undefined && spec.min !== "" && spec.max !== undefined && spec.max !== "") {
+                                    out.range = { min: spec.min, max: spec.max };
+                                }
+                                return out;
+                            });
+                        } else {
+                            const subFields = serverSchema[comp].subFields[bType] || [];
+                            subFields.forEach(f => {
+                                if (f.id === 'ceiling_materials' || f.id === 'floor_materials') {
+                                    builderObj[f.id] = typeof data[f.id] === 'string' ? data[f.id].split(',').map(s => s.trim()).filter(s => s) : [];
+                                } else if (data[f.id] !== "" && data[f.id] !== undefined) builderObj[f.id] = data[f.id];
+                            });
+                        }
+
+                        serverBiomeDef.components[comp] = { builder: builderObj }; break;
+                    
+                    case 'minecraft:climate':
+                        serverBiomeDef.components[comp] = { temperature: data.temperature, downfall: data.downfall };
+                        if(data.snow_accumulation_min !== undefined || data.snow_accumulation_max !== undefined) {
+                            serverBiomeDef.components[comp].snow_accumulation = [data.snow_accumulation_min, data.snow_accumulation_max];
+                        } break;
+                        
+                    case 'minecraft:tags':
+                        serverBiomeDef.components[comp] = { tags: typeof data.tags === 'string' ? data.tags.split(',').map(s => s.trim()).filter(s => s) : [] }; break;
+                        
+                    case 'minecraft:map_tints':
+                        serverBiomeDef.components[comp] = { foliage: data.foliage, grass: data.grass_type === 'tint' ? { type: "tint", tint: data.grass_tint } : { type: "noise" } }; break;
+                        
+                    case 'minecraft:mountain_parameters':
+                        serverBiomeDef.components[comp] = {};
+                        if (data.steep_material && data.steep_material.trim() !== "") {
+                            serverBiomeDef.components[comp].steep_material_adjustment = {
+                                east_slopes: data.steep_material_east, north_slopes: data.steep_material_north,
+                                south_slopes: data.steep_material_south, west_slopes: data.steep_material_west, material: data.steep_material
+                            };
+                        }
+                        serverBiomeDef.components[comp].top_slide = { enabled: data.top_slide_enabled }; break;
+                        
+                    case 'minecraft:surface_material_adjustments':
+                        serverBiomeDef.components[comp] = {
+                            adjustments: data.map(adj => {
+                                const adjObj = {};
+                                if (adj.height_range_min != null && adj.height_range_max != null && adj.height_range_min !== "" && adj.height_range_max !== "") {
+                                    const minH = isNaN(adj.height_range_min) ? adj.height_range_min : parseFloat(adj.height_range_min);
+                                    const maxH = isNaN(adj.height_range_max) ? adj.height_range_max : parseFloat(adj.height_range_max);
+                                    adjObj.height_range = [minH, maxH];
+                                }
+                                const materials = {};
+                                if (adj.top_material) materials.top_material = adj.top_material;
+                                if (adj.mid_material) materials.mid_material = adj.mid_material;
+                                if (adj.foundation_material) materials.foundation_material = adj.foundation_material;
+                                if (adj.sea_material) materials.sea_material = adj.sea_material;
+                                if (adj.sea_floor_material) materials.sea_floor_material = adj.sea_floor_material;
+                                adjObj.materials = materials;
+
+                                if (adj.noise_frequency_scale != null && adj.noise_frequency_scale !== "") adjObj.noise_frequency_scale = parseFloat(adj.noise_frequency_scale) || 0;
+                                if (adj.noise_range_min != null && adj.noise_range_max != null && adj.noise_range_min !== "" && adj.noise_range_max !== "") {
+                                    adjObj.noise_range = [parseFloat(adj.noise_range_min) || 0, parseFloat(adj.noise_range_max) || 0];
+                                }
+                                return adjObj;
+                            })
+                        }; break;
+                        
+                    case 'minecraft:creature_spawn_probability':
+                    case 'minecraft:humidity':
+                    case 'minecraft:village_type':
+                        serverBiomeDef.components[comp] = { ...data }; break;
+                        
+                    case 'minecraft:partially_frozen':
+                        serverBiomeDef.components[comp] = {}; break;
+                }
+            });
+
+            const serverOut = { format_version: biome.format_version || "1.26.30", "minecraft:biome": serverBiomeDef };
+            const serverStr = JSON.stringify(serverOut, null, 2);
+
+            // CLIENT JSON
+            const clientBiomeDef = { description: { identifier: biome.identifier || "custom:unnamed" }, components: {} };
+            biome.clientActiveComponents.forEach(comp => {
+                const data = biome.clientData[comp];
+                switch(comp) {
+                    case 'minecraft:sky_color':
+                    case 'minecraft:dry_foliage_color':
+                    case 'minecraft:foliage_appearance':
+                        clientBiomeDef.components[comp] = { color: data.color || data.sky_color }; break;
+                    case 'minecraft:grass_appearance':
+                        clientBiomeDef.components[comp] = { color: data.color, grass_is_shaded: data.grass_is_shaded }; break;
+                    case 'minecraft:water_appearance':
+                        clientBiomeDef.components[comp] = { surface_color: data.surface_color, surface_opacity: data.surface_opacity }; break;
+                    case 'minecraft:fog_appearance':
+                    case 'minecraft:atmosphere_identifier':
+                    case 'minecraft:color_grading_identifier':
+                    case 'minecraft:cubemap_identifier':
+                    case 'minecraft:lighting_identifier':
+                    case 'minecraft:water_identifier':
+                        clientBiomeDef.components[comp] = { [comp.replace('minecraft:', '')]: data[comp.replace('minecraft:', '')] }; break;
+                    case 'minecraft:biome_music':
+                        clientBiomeDef.components[comp] = { music_definition: data.music_definition, volume_multiplier: data.volume_multiplier, underwater_music: data.underwater_music }; break;
+                    case 'minecraft:precipitation':
+                        clientBiomeDef.components[comp] = { ash: data.ash, blue_spores: data.blue_spores, red_spores: data.red_spores, white_ash: data.white_ash }; break;
+                    case 'minecraft:ambient_sounds':
+                        const out = {};
+                        if (data.addition) out.addition = { asset: data.addition, chance: data.addition_chance };
+                        if (data.underwater_addition) out.underwater_addition = { asset: data.underwater_addition, chance: data.underwater_addition_chance };
+                        if (data.loop) out.loop = data.loop; if (data.mood) out.mood = data.mood;
+                        if (data.underwater_loop) out.underwater_loop = data.underwater_loop; if (data.underwater_mood) out.underwater_mood = data.underwater_mood;
+                        clientBiomeDef.components[comp] = out; break;
+                }
+            });
+
+            const clientOut = { format_version: "1.21.130", "minecraft:client_biome": clientBiomeDef };
+            const clientStr = JSON.stringify(clientOut, null, 2);
+
+            return { server: serverStr, client: clientStr };
+        }
+
+        function generateJSONDOM() {
+            const strings = getBiomeJSONStrings(getCurrentBiome());
+            
+            const serverEl = document.getElementById('json-output-server');
+            serverEl.textContent = strings.server; delete serverEl.dataset.highlighted; hljs.highlightElement(serverEl);
+
+            const clientEl = document.getElementById('json-output-client');
+            clientEl.textContent = strings.client; delete clientEl.dataset.highlighted; hljs.highlightElement(clientEl);
+        }
+
+        // --- Output Helpers (Individual Biomes) ---
+        function showToast(msg = "Copied to clipboard!") {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.className = "toast show";
+            setTimeout(() => { t.className = "toast"; }, 2500);
+        }
+
+        function copyJSON(type) {
+            const strings = getBiomeJSONStrings(getCurrentBiome());
+            const str = type === 'server' ? strings.server : strings.client;
+            if(!str) return;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(str).then(() => showToast());
+            } else {
+                const ta = document.createElement("textarea"); ta.value = str; ta.style.position = "fixed"; ta.style.left = "-9999px";
+                document.body.appendChild(ta); ta.focus(); ta.select();
+                try { document.execCommand('copy'); showToast(); } catch(e) {}
+                document.body.removeChild(ta);
+            }
+        }
+
+        function downloadJSON(type) {
+            const biome = getCurrentBiome();
+            if(!biome) return;
+            const strings = getBiomeJSONStrings(biome);
+            const str = type === 'server' ? strings.server : strings.client;
+            if(!str) return;
+            
+            const blob = new Blob([str], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            let name = biome.identifier.replace(':', '_');
+            if (type === 'server') name += ".biome.json";
+            if (type === 'client') name += ".client_biome.json";
+            
+            const a = document.createElement('a'); a.href = url; a.download = name;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        // --- Pack Exporting Logic ---
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function generatePackIcon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#282a36';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = '#bd93f9';
+            ctx.font = 'bold 80px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('B', 64, 64);
+            return canvas.toDataURL('image/png').split(',')[1]; // Return base64 data only
+        }
+
+        function openExportModal(projId = null, event = null) {
+            if (event) event.stopPropagation();
+            
+            exportProjectTargetId = projId || currentProjectId;
+            const proj = projects.find(p => p.id === exportProjectTargetId);
+            if (!proj) return;
+
+            document.getElementById('export-pack-name').value = proj.name;
+            
+            const list = document.getElementById('export-biome-list');
+            list.innerHTML = "";
+            proj.biomes.forEach(b => {
+                list.innerHTML += `
+                    <label>
+                        <input type="checkbox" data-biome-id="${b.id}" checked>
+                        <span>${b.identifier}</span>
+                    </label>
+                `;
+            });
+            
+            document.getElementById('modal-overlay-export').classList.add('active');
+        }
+
+        function performExport() {
+            const proj = projects.find(p => p.id === exportProjectTargetId);
+            if (!proj) return;
+
+            const packName = document.getElementById('export-pack-name').value.trim() || proj.name;
+            const packDesc = document.getElementById('export-pack-desc').value.trim() || "Created with Bedrock Biome Creator";
+            const versionArr = document.getElementById('export-pack-version').value.split('.').map(Number);
+            const minEngineArr = document.getElementById('export-min-engine').value.split('.').map(Number);
+            
+            // Validate arrays
+            const ver = versionArr.length === 3 ? versionArr : [1, 0, 0];
+            const engine = minEngineArr.length === 3 ? minEngineArr : [1, 26, 30];
+
+            const checkboxes = document.querySelectorAll('#export-biome-list input[type="checkbox"]:checked');
+            const selectedBiomeIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-biome-id'));
+            
+            if (selectedBiomeIds.length === 0) {
+                alert("Please select at least one biome to export.");
+                return;
+            }
+
+            closeModal('modal-overlay-export');
+            showToast("Generating Addon...");
+
+            const bpUUID = generateUUID();
+            const rpUUID = generateUUID();
+            const bpModuleUUID = generateUUID();
+            const rpModuleUUID = generateUUID();
+
+            const bpManifest = {
+                format_version: 2,
+                header: { name: packName + " BP", description: packDesc, uuid: bpUUID, version: ver, min_engine_version: engine },
+                modules: [{ type: "data", uuid: bpModuleUUID, version: ver }],
+                dependencies: [{ uuid: rpUUID, version: ver }]
+            };
+
+            const rpManifest = {
+                format_version: 2,
+                header: { name: packName + " RP", description: packDesc, uuid: rpUUID, version: ver, min_engine_version: engine },
+                modules: [{ type: "resources", uuid: rpModuleUUID, version: ver }],
+                dependencies: [{ uuid: bpUUID, version: ver }]
+            };
+
+            const zip = new JSZip();
+            const bpFolder = zip.folder(packName + " BP");
+            const rpFolder = zip.folder(packName + " RP");
+            
+            const iconBase64 = generatePackIcon();
+
+            // BP contents
+            bpFolder.file("manifest.json", JSON.stringify(bpManifest, null, 2));
+            bpFolder.file("pack_icon.png", iconBase64, {base64: true});
+            const bpBiomesFolder = bpFolder.folder("biomes");
+
+            // RP contents
+            rpFolder.file("manifest.json", JSON.stringify(rpManifest, null, 2));
+            rpFolder.file("pack_icon.png", iconBase64, {base64: true});
+            const rpBiomesFolder = rpFolder.folder("biomes");
+
+            // Add biomes
+            selectedBiomeIds.forEach(id => {
+                const b = proj.biomes.find(x => x.id === id);
+                if (b) {
+                    const strings = getBiomeJSONStrings(b);
+                    const safeName = b.identifier.replace(':', '_');
+                    
+                    bpBiomesFolder.file(`${safeName}.biome.json`, strings.server);
+                    rpBiomesFolder.file(`${safeName}.client_biome.json`, strings.client);
+                }
+            });
+
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${packName.replace(/[^a-z0-9]/gi, '_')}.mcaddon`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast("Addon Exported!");
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", initApp);
+    </script>
+</body>
+</html>
