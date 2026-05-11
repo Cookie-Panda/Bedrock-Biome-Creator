@@ -8,3 +8,5 @@ works in offline
 optimized for desktop and mobile devices.
 Exported packs can be updated within app i.e. new updates can be exported for pack.
 individual json code can be copied and download.
+
+Bedrock biome creator: https://cookie-panda.github.io/Bedrock-Biome-Creator/
