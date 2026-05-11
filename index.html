@@ -8,13 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Highlight.js for JSON preview styling -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs2015.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="./vs2015.min.css">
+    <script src="./highlight.min.js"></script>
     <!-- JSZip for exporting .mcaddon files -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="./jszip.min.js"></script>
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/monolith.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+    <link rel="stylesheet" href="./monolith.min.css"/>
+    <script src="./pickr.min.js"></script>
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><rect width='128' height='128' fill='%23282a36' rx='16'/><text x='64' y='88' font-family='sans-serif' font-size='80' font-weight='bold' fill='%23bd93f9' text-anchor='middle'>B</text></svg>">
 
     <style>
@@ -139,7 +139,8 @@
         .biome-checklist { border: 1px solid var(--border-color); border-radius: 4px; padding: 5px; background: var(--bg-main); max-height: 150px; overflow-y: auto; margin-bottom: 15px; }
         .biome-checklist label { display: flex; align-items: center; padding: 8px; margin: 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
         .biome-checklist label:last-child { border-bottom: none; }
-        .biome-checklist input { width: auto !important; margin-right: 10px !important; margin-bottom: 0 !important; }
+        .biome-checklist input { width: auto !important; margin-right: 10px !important; margin-bottom: 0 !important; accent-color: var(--accent); transform: scale(1.1); }
+
 
         /* --- Editor Screen --- */
         .desktop-header {
@@ -282,18 +283,26 @@
             .workspace { flex-direction: row; padding-bottom: 60px; } 
             .workspace.components-open { padding-bottom: 200px; }
             
-            .main-content { flex: 1; min-width: 0; padding-bottom: 20px; padding-right: 50px; }
+            /* Removed right padding so the editor takes full width when preview is closed */
+            .main-content { flex: 1; min-width: 0; padding-bottom: 20px; }
             
             .preview-panel { 
                 width: 85% !important; max-width: 380px;
                 position: absolute; right: 0; top: 0; height: 100%; z-index: 40;
                 border-left: 1px solid var(--border-color); box-shadow: -5px 0 20px rgba(0,0,0,0.6);
             }
-            .preview-panel.collapsed { width: 50px !important; box-shadow: none; }
+            
+            /* Completely hides the preview panel when collapsed to reclaim screen space */
+            .preview-panel.collapsed { display: none !important; }
             .preview-content { padding-bottom: 80px; } 
             
             .mobile-bottom-wrapper { display: flex; }
+            
+            /* Adjusted mobile nav to support clean, centered icon buttons */
+            .mobile-nav button { padding: 12px 0; display: flex; justify-content: center; align-items: center; }
+            .mobile-nav button svg { width: 24px; height: 24px; }
         }
+
         
                 /* --- Pickr Custom UI Overrides --- */
         
@@ -443,6 +452,10 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button class="btn-standard danger" onclick="clearAllComponents()" title="Reset all values">
+                    <svg style="width:16px;height:16px;fill:currentColor;margin-right:4px" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> Clear All
+                </button>
+
                 <button class="btn-standard" onclick="triggerImport()">Import JSON</button>
                 <button class="btn-standard primary" onclick="openExportModal()">Export Addon</button>
             </div>
@@ -473,7 +486,9 @@
             <div class="main-content" id="form-container" oninput="handleFormChange(event)" onchange="handleFormChange(event)"></div>
 
             <!-- Live Preview Panel -->
-            <div class="preview-panel" id="preview-panel">
+<div class="preview-panel" id="preview-panel">
+
+
                 <div class="panel-header">
                     <div style="display:flex; align-items:center;">
                         <button class="icon-btn" onclick="togglePreview()" id="preview-toggle" title="Toggle Preview">
@@ -487,10 +502,12 @@
                     <div class="preview-box">
                         <div class="preview-box-header">
                             <span>Server Biome (BP)</span>
-                            <div>
+                                                        <div>
+                                <button class="btn-standard" style="padding: 2px 8px; font-size: 0.75rem;" onclick="pasteJSON()">Paste</button>
                                 <button class="btn-standard" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyJSON('server')">Copy</button>
                                 <button class="btn-standard primary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="downloadJSON('server')">D/L</button>
                             </div>
+
                         </div>
                         <div class="preview-box-body">
                             <pre><code class="language-json" id="json-output-server"></code></pre>
@@ -501,9 +518,11 @@
                         <div class="preview-box-header">
                             <span>Client Biome (RP)</span>
                             <div>
+                                <button class="btn-standard" style="padding: 2px 8px; font-size: 0.75rem;" onclick="pasteJSON()">Paste</button>
                                 <button class="btn-standard" style="padding: 2px 8px; font-size: 0.75rem;" onclick="copyJSON('client')">Copy</button>
                                 <button class="btn-standard primary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="downloadJSON('client')">D/L</button>
                             </div>
+
                         </div>
                         <div class="preview-box-body">
                             <pre><code class="language-json" id="json-output-client"></code></pre>
@@ -522,11 +541,14 @@
                      <div class="mobile-components-row mobile-client-components-container"></div>
                 </div>
                 <div class="mobile-nav">
-                    <button class="btn-standard" onclick="goHome()">Back</button>
-                    <button class="btn-standard" onclick="toggleMobileComponents()">Components</button>
-                    <button class="btn-standard" onclick="triggerImport()">Import</button>
-                    <button class="btn-standard primary" onclick="openExportModal()">Export</button>
+                    <button class="icon-btn" onclick="goHome()" title="Back"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                    <button class="icon-btn" onclick="toggleMobileComponents()" title="Components"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M4 18h16v-2H4v2zM4 13h16v-2H4v2zM4 6v2h16V6H4z"/></svg></button>
+                    <button class="icon-btn" onclick="togglePreview()" title="Preview Code"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg></button>
+                    <button class="icon-btn" style="color: var(--danger)" onclick="clearAllComponents()" title="Clear All"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></button>
+                    <button class="icon-btn" onclick="triggerImport()" title="Import"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg></button>
+                    <button class="icon-btn" style="color: var(--accent)" onclick="openExportModal()" title="Export"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
                 </div>
+
             </div>
 
         </div>
@@ -569,7 +591,7 @@
                     { id: "sea_material", label: "Sea Material", type: "text", default: "minecraft:water" },
                     { id: "sea_floor_material", label: "Sea Floor Material", type: "text", default: "minecraft:dirt" },
                     { id: "sea_floor_depth", label: "Sea Floor Depth", type: "number", default: 7 },
-                    { id: "max_puddle_depth_below_sea_level", label: "Max Puddle Depth", type: "number", default: 0 }
+                    { id: "max_puddle_depth_below_sea_level", label: "Max Puddle Depth (0 to 127)", type: "number", default: 0 }
                 ],
                 "minecraft:mesa": [
                     { id: "top_material", label: "Top Material", type: "text", default: "minecraft:red_sand" },
@@ -687,15 +709,22 @@
             },
             "minecraft:foliage_appearance": {
                 label: "Foliage Appearance", desc: "Set the foliage color used during rendering.",
-                fields: [ { id: "color", label: "Foliage Color (Hex)", type: "color", default: "#4C763C" } ]
+                fields: [
+                    { id: "color_type", label: "Color Type", type: "select", options: ["hex", "colormap"], default: "hex" },
+                    { id: "color", label: "Color [If Hex]", type: "color", default: "#4C763C" },
+                    { id: "color_map", label: "Color Map [If Colormap]", type: "select", options: ["foliage", "birch", "evergreen", "mangrove_swamp_foliage", "swamp_foliage", "dry_foliage"], default: "foliage" }
+                ]
             },
             "minecraft:grass_appearance": {
                 label: "Grass Appearance", desc: "Set the grass color.",
                 fields: [
-                    { id: "color", label: "Grass Color (Hex)", type: "color", default: "#4C763C" },
+                    { id: "color_type", label: "Color Type", type: "select", options: ["hex", "colormap"], default: "hex" },
+                    { id: "color", label: "Color [If Hex]", type: "color", default: "#4C763C" },
+                    { id: "color_map", label: "Color Map [If Colormap]", type: "select", options: ["grass", "swamp_grass"], default: "grass" },
                     { id: "grass_is_shaded", label: "Grass is Shaded", type: "checkbox", default: false }
                 ]
             },
+
             "minecraft:ambient_sounds": {
                 label: "Ambient Sounds", desc: "Set the ambient sounds. Refer to sounds.json keys.",
                 fields: [
@@ -724,12 +753,11 @@
             "minecraft:water_identifier": { label: "Water Identifier", desc: "Water definition.", fields: [ { id: "water_identifier", label: "Identifier", type: "text", default: "" } ] },
             "minecraft:dry_foliage_color": { label: "Dry Foliage", desc: "Dry foliage color.", fields: [ { id: "color", label: "Color (Hex)", type: "color", default: "#4C763C" } ] },
             "minecraft:precipitation": {
-                label: "Precipitation", desc: "Precipitation visuals.",
+                label: "Precipitation",
+                desc: "Precipitation visuals (only one type allowed).",
                 fields: [
-                    { id: "ash", label: "Ash Density", type: "number", step: "0.1", default: 0 },
-                    { id: "blue_spores", label: "Blue Spores Density", type: "number", step: "0.1", default: 0 },
-                    { id: "red_spores", label: "Red Spores Density", type: "number", step: "0.1", default: 0 },
-                    { id: "white_ash", label: "White Ash Density", type: "number", step: "0.1", default: 0 }
+                    { id: "type", label: "Type", type: "select", options: ["none", "ash", "blue_spores", "red_spores", "white_ash"], default: "none" },
+                    { id: "density", label: "Density", type: "number", step: "0.1", default: 0.1 }
                 ]
             }
         };
@@ -754,65 +782,10 @@
         }
 
         // --- Offline Support (Service Worker) ---
-        function registerOfflineCache() {
+function registerOfflineCache() {
             if ('serviceWorker' in navigator) {
-                const swCode = `
-                    const CACHE_NAME = 'bedrock-biome-creator-v2';
-                    const ASSETS_TO_CACHE = [
-                        location.href,
-                        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/vs2015.min.css',
-                        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js',
-                        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-                        'https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/monolith.min.css',
-                        'https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js',
-                        'https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter:wght@400;500;600&display=swap'
-                    ];
-
-                    self.addEventListener('install', event => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
-                        );
-                    });
-
-                    self.addEventListener('fetch', event => {
-                        const url = new URL(event.request.url);
-
-                        // Runtime caching specifically for Google Fonts files
-                        if (url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com') {
-                            event.respondWith(
-                                caches.match(event.request).then(cachedResponse => {
-                                    if (cachedResponse) {
-                                        return cachedResponse;
-                                    }
-                                    return fetch(event.request).then(networkResponse => {
-                                        // Cache the fetched font for next time
-                                        if (networkResponse && networkResponse.status === 200) {
-                                            const responseToCache = networkResponse.clone();
-                                            caches.open(CACHE_NAME).then(cache => {
-                                                cache.put(event.request, responseToCache);
-                                            });
-                                        }
-                                        return networkResponse;
-                                    });
-                                })
-                            );
-                            return; // Stop execution here for fonts
-                        }
-
-                        // Standard Cache-First approach for everything else
-                        event.respondWith(
-                            caches.match(event.request).then(cachedResponse => {
-                                return cachedResponse || fetch(event.request);
-                            })
-                        );
-                    });
-                `;
-                
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-
-                navigator.serviceWorker.register(swUrl).then(() => {
-                    console.log('Offline caching enabled with dynamic font saving.');
+                navigator.serviceWorker.register('./sw.js').then((registration) => {
+                    console.log('Service Worker registered cleanly with scope:', registration.scope);
                 }).catch(err => {
                     console.error('Service Worker registration failed:', err);
                 });
@@ -879,6 +852,22 @@
             
             document.getElementById('editor-header-title').textContent = currentProject.name;
             showView('view-editor');
+            
+            // Handle responsive preview panel state based on screen width
+            const previewPanel = document.getElementById('preview-panel');
+            const previewToggleBtn = document.getElementById('preview-toggle');
+            if (window.innerWidth <= 800) {
+                previewPanel.classList.add('collapsed');
+            } else {
+                previewPanel.classList.remove('collapsed');
+            }
+            
+            // Sync the preview toggle button icon
+            if (previewToggleBtn) {
+                previewToggleBtn.innerHTML = previewPanel.classList.contains('collapsed')
+                    ? '<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>'
+                    : '<svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>';
+            }
             
             renderTabs();
             renderComponents();
@@ -966,6 +955,31 @@
                 syncProject(); renderTabs(); renderComponents(); renderForm(); generateJSONDOM();
             }
         }
+        
+        function duplicateCurrentBiome() {
+            const biomeToCopy = getCurrentBiome();
+            if (!biomeToCopy) return;
+
+            // Deep clone the biome and generate fresh IDs
+            const newBiome = JSON.parse(JSON.stringify(biomeToCopy));
+            newBiome.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+            newBiome.identifier = newBiome.identifier + "_copy";
+            
+            // Clean up temporary UI revert states
+            delete newBiome.revertIdentifier;
+            delete newBiome.revertFormatVersion;
+
+            currentProject.biomes.push(newBiome);
+            currentBiomeId = newBiome.id;
+            
+            syncProject(); renderTabs(); renderComponents(); renderForm(); generateJSONDOM();
+            
+            // Auto-scroll tabs to show the new duplicate
+            const container = document.getElementById('tabs-container');
+            setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 50);
+            showToast("Biome Duplicated");
+        }
+
 
         function createDefaultBiomeState(identifierStr) {
             const state = {
@@ -1016,6 +1030,95 @@
             }
         }
 
+        // --- Data Reset & Clear Functions ---
+        function getComponentDefault(schema) {
+            let data = {};
+            if (schema.isArray) {
+                data = [ JSON.parse(JSON.stringify(schema.arrayConfig.itemTemplate)) ];
+            } else if (schema.fields) {
+                schema.fields.forEach(f => data[f.id] = Array.isArray(f.default) ? JSON.parse(JSON.stringify(f.default)) : f.default);
+                if (schema.subFields && data.type && schema.subFields[data.type]) {
+                    schema.subFields[data.type].forEach(f => data[f.id] = Array.isArray(f.default) ? JSON.parse(JSON.stringify(f.default)) : f.default);
+                }
+            }
+            return data;
+        }
+
+        function getComponentBlank(schema) {
+            let data = {};
+            if (schema.isArray) {
+                const blankItem = {};
+                schema.arrayConfig.fields.forEach(f => {
+                    blankItem[f.id] = f.type === 'select' ? f.options[0] : (f.type === 'checkbox' ? false : "");
+                });
+                data = [ blankItem ];
+            } else if (schema.fields) {
+                schema.fields.forEach(f => {
+                    if (f.type === 'select') data[f.id] = f.options[0];
+                    else if (f.type === 'checkbox') data[f.id] = false;
+                    else if (f.type === 'noise_specifiers') data[f.id] = [];
+                    else data[f.id] = "";
+                });
+                if (schema.subFields && data.type && schema.subFields[data.type]) {
+                    schema.subFields[data.type].forEach(f => {
+                        if (f.type === 'select') data[f.id] = f.options[0];
+                        else if (f.type === 'checkbox') data[f.id] = false;
+                        else if (f.type === 'noise_specifiers') data[f.id] = [];
+                        else data[f.id] = "";
+                    });
+                }
+            }
+            return data;
+        }
+
+        function clearAllComponents() {
+            const biome = getCurrentBiome(); if (!biome) return;
+            
+            // Check if all components are already at their default state
+            let allDefault = true;
+            biome.activeComponents.forEach(comp => { 
+                if (serverSchema[comp] && JSON.stringify(biome.data[comp]) !== JSON.stringify(getComponentDefault(serverSchema[comp]))) allDefault = false; 
+            });
+            biome.clientActiveComponents.forEach(comp => { 
+                if (clientSchema[comp] && JSON.stringify(biome.clientData[comp]) !== JSON.stringify(getComponentDefault(clientSchema[comp]))) allDefault = false; 
+            });
+
+            if (allDefault) {
+                if (!confirm("All components are currently at their default values.\n\nDo you want to CLEAR all values (make them blank)? This cannot be undone.")) return;
+                biome.activeComponents.forEach(comp => { if (serverSchema[comp]) biome.data[comp] = getComponentBlank(serverSchema[comp]); });
+                biome.clientActiveComponents.forEach(comp => { if (clientSchema[comp]) biome.clientData[comp] = getComponentBlank(clientSchema[comp]); });
+                showToast("All components cleared to blank state");
+            } else {
+                if (!confirm("Are you sure you want to RESET all components to their defaults?\n\n(Click this again once reset to clear values completely)")) return;
+                biome.activeComponents.forEach(comp => { if (serverSchema[comp]) biome.data[comp] = getComponentDefault(serverSchema[comp]); });
+                biome.clientActiveComponents.forEach(comp => { if (clientSchema[comp]) biome.clientData[comp] = getComponentDefault(clientSchema[comp]); });
+                showToast("All components reset to defaults");
+            }
+
+            syncProject(); renderForm(); generateJSONDOM(); 
+        }
+
+        function clearComponent(compKey, isClient) {
+            const biome = getCurrentBiome(); if (!biome) return;
+            const schema = isClient ? clientSchema[compKey] : serverSchema[compKey]; if (!schema) return;
+            const targetData = isClient ? biome.clientData : biome.data;
+
+            const isDefault = JSON.stringify(targetData[compKey]) === JSON.stringify(getComponentDefault(schema));
+            
+            if (isDefault) {
+                if (!confirm("Values for " + compKey.replace('minecraft:', '') + " are at defaults. CLEAR to blank values?")) return;
+                targetData[compKey] = getComponentBlank(schema);
+                showToast("Component values cleared");
+            } else {
+                if (!confirm("Reset values for " + compKey.replace('minecraft:', '') + " to defaults?")) return;
+                targetData[compKey] = getComponentDefault(schema);
+                showToast("Component reset to defaults");
+            }
+            
+            syncProject(); renderForm(); generateJSONDOM();
+        }
+
+
         // --- Importing JSON ---
         function triggerImport() { document.getElementById('import-file').click(); }
 
@@ -1025,7 +1128,11 @@
             const reader = new FileReader();
             reader.onload = function(evt) {
                 try {
-                    const parsed = JSON.parse(evt.target.result);
+                    // Safely strip comments (// and /* */) without breaking strings
+                    const rawData = evt.target.result;
+                    const cleanData = rawData.replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) => g ? "" : m);
+                    
+                    const parsed = JSON.parse(cleanData);
                     processImport(parsed);
                     e.target.value = ''; // reset
                 } catch (err) {
@@ -1065,6 +1172,10 @@
 
                 const comps = biomeDef.components;
                 if (comps) {
+                                        // Check for replace_biomes missing on vanilla import
+                    if (biome.identifier.startsWith('minecraft:') && !comps['minecraft:replace_biomes']) {
+                        biome.activeComponents = biome.activeComponents.filter(c => c !== 'minecraft:replace_biomes');
+                    }
                     Object.keys(comps).forEach(key => {
                         if (serverSchema[key]) {
                             if (!biome.activeComponents.includes(key)) biome.activeComponents.push(key);
@@ -1200,8 +1311,16 @@
             if (key === 'minecraft:sky_color') targetData.sky_color = compData.sky_color || "#78A7FF";
             if (key === 'minecraft:water_appearance') { targetData.surface_color = compData.surface_color || "#44AFF5"; targetData.surface_opacity = compData.surface_opacity || 1.0; }
             if (key === 'minecraft:fog_appearance') targetData.fog_identifier = compData.fog_identifier || "minecraft:fog_default";
-            if (key === 'minecraft:foliage_appearance') targetData.color = compData.color || "#4C763C";
-            if (key === 'minecraft:grass_appearance') { targetData.color = compData.color || "#4C763C"; targetData.grass_is_shaded = !!compData.grass_is_shaded; }
+            if (key === 'minecraft:foliage_appearance') {
+                if (compData.color && compData.color.color_map) { targetData.color_type = "colormap"; targetData.color_map = compData.color.color_map; }
+                else { targetData.color_type = "hex"; targetData.color = compData.color || "#4C763C"; }
+            }
+            if (key === 'minecraft:grass_appearance') {
+                if (compData.color && compData.color.color_map) { targetData.color_type = "colormap"; targetData.color_map = compData.color.color_map; }
+                else { targetData.color_type = "hex"; targetData.color = compData.color || "#4C763C"; }
+                targetData.grass_is_shaded = !!compData.grass_is_shaded;
+            }
+
             if (key === 'minecraft:ambient_sounds') {
                 if (compData.addition) { targetData.addition = compData.addition.asset || ""; targetData.addition_chance = compData.addition.chance || 0.01; }
                 if (compData.underwater_addition) { targetData.underwater_addition = compData.underwater_addition.asset || ""; targetData.underwater_addition_chance = compData.underwater_addition.chance || 0.01; }
@@ -1212,8 +1331,11 @@
                 targetData.music_definition = compData.music_definition || ""; targetData.volume_multiplier = compData.volume_multiplier || 1.0; targetData.underwater_music = !!compData.underwater_music;
             }
             if (key === 'minecraft:precipitation') {
-                targetData.ash = compData.ash || 0; targetData.blue_spores = compData.blue_spores || 0; targetData.red_spores = compData.red_spores || 0; targetData.white_ash = compData.white_ash || 0;
+                const types = ["ash", "blue_spores", "red_spores", "white_ash"];
+                targetData.type = "none"; targetData.density = 0;
+                for (let t of types) { if (compData[t] !== undefined) { targetData.type = t; targetData.density = compData[t]; break; } }
             }
+
             ["atmosphere_identifier", "color_grading_identifier", "cubemap_identifier", "lighting_identifier", "water_identifier"].forEach(id => {
                 if (key === `minecraft:${id}`) targetData[id] = compData[id] || "";
             });
@@ -1272,7 +1394,10 @@
             const biome = getCurrentBiome();
             if (!biome) return;
             const schema = isClient ? clientSchema[compKey] : serverSchema[compKey];
-            if (schema && schema.required) return;
+            // Allow replace_biomes to be freely toggled for any biome, no restrictions
+            if (schema && schema.required && compKey !== 'minecraft:replace_biomes') return;
+
+
             
             const list = isClient ? biome.clientActiveComponents : biome.activeComponents;
             const index = list.indexOf(compKey);
@@ -1293,9 +1418,15 @@
             Object.keys(serverSchema).forEach(key => {
                 const schema = serverSchema[key];
                 const isActive = biome.activeComponents.includes(key);
-                const cls = `toggle-item ${isActive ? 'active' : ''} ${schema.required ? 'required' : ''}`;
-                serverHtml += `<label class="${cls}"><input type="checkbox" ${isActive ? 'checked' : ''} ${schema.required ? 'disabled' : ''} onchange="toggleComponent('${key}', false)"><span>${key.replace('minecraft:', '')}</span></label>`;
+                
+                // Remove the UI disabled restriction specifically for replace_biomes
+                const isRequired = schema.required && key !== 'minecraft:replace_biomes';
+                const cls = `toggle-item ${isActive ? 'active' : ''} ${isRequired ? 'required' : ''}`;
+
+                serverHtml += `<label class="${cls}"><input type="checkbox" ${isActive ? 'checked' : ''} ${isRequired ? 'disabled' : ''} onchange="toggleComponent('${key}', false)"><span>${key.replace('minecraft:', '')}</span></label>`;
             });
+
+
 
             let clientHtml = '';
             Object.keys(clientSchema).forEach(key => {
@@ -1318,8 +1449,14 @@
 
             let html = `
                 <div class="card required">
-                    <div class="card-header"><div class="card-title">Biome Definition (Shared)</div></div>
+                    <div class="card-header">
+                        <div class="card-title">Biome Definition (Shared)</div>
+                        <button class="icon-btn" style="padding:4px; margin:-4px;" onclick="duplicateCurrentBiome()" title="Duplicate Biome">
+                            <svg style="width:16px;height:16px;fill:var(--text-muted)" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                        </button>
+                    </div>
                     <div class="card-body">
+
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Server Format Version</label>
@@ -1348,9 +1485,19 @@
                 html += `
                     <div class="card ${schema.required ? 'required' : ''}">
                         <div class="card-header">
-                            <div class="card-title">${schema.label} ${schema.required ? '<span class="badge-required">Required</span>' : ''}</div>
-                            <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted)">${compKey}</span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div class="card-title">${schema.label}</div>
+                                ${schema.required ? '<span class="badge-required">Required</span>' : ''}
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px; flex: 1; min-width: 0; justify-content: flex-end;">
+                                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); word-break: break-all; text-align: right; line-height: 1.2;">${compKey}</span>
+                                <button class="icon-btn" style="padding:4px; margin:-4px; flex-shrink: 0;" onclick="clearComponent('${compKey}', false)" title="Reset ${compKey}">
+
+                                    <svg style="width:16px;height:16px;fill:var(--text-muted)" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                                </button>
+                            </div>
                         </div>
+
                         <div class="card-body"><div class="card-desc">${schema.desc}</div>
                 `;
 
@@ -1394,9 +1541,15 @@
                     <div class="card" style="border-color: #607d8b;">
                         <div class="card-header" style="background: rgba(96, 125, 139, 0.1);">
                             <div class="card-title">${schema.label}</div>
-                            <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted)">${compKey}</span>
+                            <div style="display:flex; align-items:center; gap:10px; flex: 1; min-width: 0; justify-content: flex-end;">
+                                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); word-break: break-all; text-align: right; line-height: 1.2;">${compKey}</span>
+                                <button class="icon-btn" style="padding:4px; margin:-4px; flex-shrink: 0;" onclick="clearComponent('${compKey}', true)" title="Reset ${compKey}">
+                                    <svg style="width:16px;height:16px;fill:var(--text-muted)" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body"><div class="card-desc">${schema.desc}</div>
+
                 `;
                 html += `<div class="form-grid">`;
                 schema.fields.forEach(field => { html += renderField(compKey, field, data[field.id], true); });
@@ -1559,7 +1712,9 @@
                 if (field === 'identifier') {
                     biome.identifier = val;
                     renderTabs();
+                    renderComponents(); // Update vanilla toggle states dynamically
                 } else if (field === 'format_version') {
+
                     biome.format_version = val;
                 }
             } else if (isArrayItem) {
@@ -1715,12 +1870,15 @@
             biome.clientActiveComponents.forEach(comp => {
                 const data = biome.clientData[comp];
                 switch(comp) {
-                    case 'minecraft:sky_color':
+                      case 'minecraft:sky_color':
+                        clientBiomeDef.components[comp] = { sky_color: data.sky_color || "#78A7FF" }; break;
                     case 'minecraft:dry_foliage_color':
+                        clientBiomeDef.components[comp] = { color: data.color || "#4C763C" }; break;
                     case 'minecraft:foliage_appearance':
-                        clientBiomeDef.components[comp] = { color: data.color || data.sky_color }; break;
+                        clientBiomeDef.components[comp] = { color: data.color_type === 'colormap' ? { color_map: data.color_map } : data.color }; break;
                     case 'minecraft:grass_appearance':
-                        clientBiomeDef.components[comp] = { color: data.color, grass_is_shaded: data.grass_is_shaded }; break;
+                        clientBiomeDef.components[comp] = { color: data.color_type === 'colormap' ? { color_map: data.color_map } : data.color, grass_is_shaded: data.grass_is_shaded }; break;
+
                     case 'minecraft:water_appearance':
                         clientBiomeDef.components[comp] = { surface_color: data.surface_color, surface_opacity: data.surface_opacity }; break;
                     case 'minecraft:fog_appearance':
@@ -1733,7 +1891,10 @@
                     case 'minecraft:biome_music':
                         clientBiomeDef.components[comp] = { music_definition: data.music_definition, volume_multiplier: data.volume_multiplier, underwater_music: data.underwater_music }; break;
                     case 'minecraft:precipitation':
-                        clientBiomeDef.components[comp] = { ash: data.ash, blue_spores: data.blue_spores, red_spores: data.red_spores, white_ash: data.white_ash }; break;
+                    if (data.type && data.type !== 'none') clientBiomeDef.components[comp] = {
+                        [data.type]: parseFloat(data.density) || 0 };
+                    else clientBiomeDef.components[comp] = {};
+                    break;
                     case 'minecraft:ambient_sounds':
                         const out = {};
                         if (data.addition) out.addition = { asset: data.addition, chance: data.addition_chance };
@@ -1765,6 +1926,28 @@
             const t = document.getElementById('toast');
             t.textContent = msg; t.className = "toast show";
             setTimeout(() => { t.className = "toast"; }, 2500);
+        }
+
+        async function pasteJSON() {
+            try {
+                // Read text directly from the clipboard
+                const text = await navigator.clipboard.readText();
+                if (!text) {
+                    showToast("Clipboard is empty!");
+                    return;
+                }
+                
+                // Safely strip comments (// and /* */) just like the file importer
+                const cleanData = text.replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) => g ? "" : m);
+                
+                // Parse and process
+                const parsed = JSON.parse(cleanData);
+                processImport(parsed);
+                
+            } catch (err) {
+                console.error("Paste Error:", err);
+                showToast("Invalid JSON or Clipboard access denied");
+            }
         }
 
         function copyJSON(type) {
@@ -1828,7 +2011,16 @@
 
             document.getElementById('export-pack-name').value = proj.name;
             
+            // Calculate and display the next version automatically
+            let displayVersion = proj.version ? [...proj.version] : [1, 0, 0];
+            if (proj.hasBeenExported) {
+                displayVersion[2] += 1; // Pre-increment the patch version for the UI
+            }
+            document.getElementById('export-pack-version').value = displayVersion.join('.');
+            
             const list = document.getElementById('export-biome-list');
+
+
             list.innerHTML = "";
             proj.biomes.forEach(b => {
                 list.innerHTML += `
@@ -1848,11 +2040,16 @@
 
             const packName = document.getElementById('export-pack-name').value.trim() || proj.name;
             const packDesc = document.getElementById('export-pack-desc').value.trim() || "Created with Bedrock Biome Creator";
-            const versionArr = document.getElementById('export-pack-version').value.split('.').map(Number);
-            const minEngineArr = document.getElementById('export-min-engine').value.split('.').map(Number);
             
-            // Validate arrays
-            const ver = versionArr.length === 3 ? versionArr : [1, 0, 0];
+            let versionArr = document.getElementById('export-pack-version').value.split('.').map(Number);
+            if (versionArr.length !== 3) versionArr = [1, 0, 0];
+            
+            // Save the version exactly as shown in the UI to the project state
+            proj.version = versionArr;
+            proj.hasBeenExported = true;
+
+
+            const minEngineArr = document.getElementById('export-min-engine').value.split('.').map(Number);
             const engine = minEngineArr.length === 3 ? minEngineArr : [1, 26, 30];
 
             const checkboxes = document.querySelectorAll('#export-biome-list input[type="checkbox"]:checked');
@@ -1863,13 +2060,65 @@
                 return;
             }
 
+            // --- Fix duplicate identifiers to prevent export conflicts ---
+            const idCounts = {};
+            let changedIdentifiers = false;
+            proj.biomes.forEach(b => {
+                if (selectedBiomeIds.includes(b.id)) {
+                    if (idCounts[b.identifier]) {
+                        const randomSuffix = Math.random().toString(36).substr(2, 2); // generates 'ab', 'f3', etc.
+                        b.identifier = `${b.identifier}_${randomSuffix}`;
+                        idCounts[b.identifier] = true;
+                        changedIdentifiers = true;
+                    } else {
+                        idCounts[b.identifier] = true;
+                    }
+                }
+            });
+            
+            // Update the live UI so the user sees the corrected names in their tabs
+            if (changedIdentifiers && currentProjectId === proj.id) {
+                currentProject = JSON.parse(JSON.stringify(proj));
+                renderTabs(); renderForm(); generateJSONDOM();
+            }
+            // -------------------------------------------------------------
+
+            // (Any warning alerts or persistent UUID logic you have will be right below this)
+
+
+            // Warn if replace_biomes is missing from any selected biome
+            const missingReplace = proj.biomes.filter(b => selectedBiomeIds.includes(b.id) && !b.activeComponents.includes('minecraft:replace_biomes'));
+            if (missingReplace.length > 0) {
+                const names = missingReplace.map(b => b.identifier).join("\n- ");
+                const proceed = confirm(`ALERT: The following biomes are missing the 'replace_biomes' component:\n\n- ${names}\n\nWithout it, they won't generate in-game. Please activate it unless you are intentionally overriding vanilla visuals only.\n\nDo you want to proceed with the export anyway?`);
+                if (!proceed) return;
+            }
+
+            // Lock in persistent UUIDs for this project if they don't exist yet
+            if (!proj.uuids) {
+                proj.uuids = {
+                    bp: generateUUID(),
+                    rp: generateUUID(),
+                    bpModule: generateUUID(),
+                    rpModule: generateUUID()
+                };
+            }
+            
+            // Save project updates (UUIDs and incremented version) to local storage
+            const projIndex = projects.findIndex(p => p.id === proj.id);
+            if (projIndex > -1) {
+                projects[projIndex] = proj;
+                saveLocalData();
+            }
+
             closeModal('modal-overlay-export');
             showToast("Generating Addon...");
 
-            const bpUUID = generateUUID();
-            const rpUUID = generateUUID();
-            const bpModuleUUID = generateUUID();
-            const rpModuleUUID = generateUUID();
+            const bpUUID = proj.uuids.bp;
+            const rpUUID = proj.uuids.rp;
+            const bpModuleUUID = proj.uuids.bpModule;
+            const rpModuleUUID = proj.uuids.rpModule;
+            const ver = proj.version;
 
             const bpManifest = {
                 format_version: 2,
@@ -1928,5 +2177,6 @@
 
         document.addEventListener("DOMContentLoaded", initApp);
     </script>
+    
 </body>
 </html>
