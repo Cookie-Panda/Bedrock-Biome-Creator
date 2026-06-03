@@ -370,6 +370,8 @@
 
     <!-- Hidden Input for Importing JSON -->
     <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+    <input type="file" id="import-multi-file" accept=".json" multiple style="display:none" onchange="importMultiJSON(event)">
+
 
     <!-- HOME SCREEN -->
     <div id="view-home" class="active">
@@ -464,8 +466,12 @@
         <!-- Biome Tabs Bar -->
         <div class="tabs-bar">
             <div class="tabs-container" id="tabs-container"></div>
+            <button class="icon-btn" style="border-radius:0; border-left:1px solid var(--border-color); border-right:1px solid var(--border-color); padding:0 15px;" onclick="document.getElementById('import-multi-file').click()" title="Import Biome(s)">
+                <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+            </button>
             <div class="add-tab-btn" onclick="addNewBiomeTab()" title="Add New Biome">+</div>
         </div>
+
 
         <div class="workspace" id="workspace-container">
             
@@ -477,10 +483,13 @@
                         <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
                     </button>
                 </div>
-                <div class="component-list desktop-components-container" style="padding-bottom: 0;"></div>
-                <div class="client-separator">Client Biome</div>
-                <div class="component-list desktop-client-components-container" style="padding-top: 5px;"></div>
+                <div style="padding: 10px 15px 5px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Server Biome</div>
+                <div class="component-list desktop-components-container"></div>
+                <div style="padding: 10px 15px 5px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Client Biome</div>
+                <div class="component-list desktop-client-components-container"></div>
             </div>
+
+
 
             <!-- Form Body -->
             <div class="main-content" id="form-container" oninput="handleFormChange(event)" onchange="handleFormChange(event)"></div>
@@ -540,6 +549,8 @@
                      <div class="mobile-components-label">Client Biome</div>
                      <div class="mobile-components-row mobile-client-components-container"></div>
                 </div>
+
+
                 <div class="mobile-nav">
                     <button class="icon-btn" onclick="goHome()" title="Back"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
                     <button class="icon-btn" onclick="toggleMobileComponents()" title="Components"><svg style="width:24px;height:24px;fill:currentColor" viewBox="0 0 24 24"><path d="M4 18h16v-2H4v2zM4 13h16v-2H4v2zM4 6v2h16V6H4z"/></svg></button>
@@ -619,7 +630,7 @@
                     { id: "nd_first_octave", label: "First Octave", type: "number", default: -5 },
                     { id: "nd_amplitudes", label: "Amplitudes (Comma separated)", type: "text", default: "1.0, 0.0, 1.0" },
                     { id: "non_replaceable_blocks", label: "Non-Replaceable Blocks", type: "text", default: "minecraft:bedrock" },
-                    { id: "noise_block_specifiers", label: "Noise Block Specifiers", type: "noise_specifiers", default: [ { block: "minecraft:stone", min: 0.0, max: 1.0 } ] }
+                    { id: "noise_block_specifiers", label: "Noise Block Specifiers", type: "noise_specifiers", default: [ { block: "minecraft:stone", min: -1.0, max: 1.0 } ] }
                 ]
             }
 
@@ -986,8 +997,9 @@ function registerOfflineCache() {
                 id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                 identifier: identifierStr,
                 format_version: "1.26.30",
-                activeComponents: ["minecraft:replace_biomes", "minecraft:climate", "minecraft:tags"],
-                clientActiveComponents: ["minecraft:sky_color", "minecraft:foliage_appearance", "minecraft:grass_appearance", "minecraft:water_appearance"],
+                activeComponents: ["minecraft:replace_biomes", "minecraft:climate", "minecraft:tags", "minecraft:surface_builder"],
+                clientActiveComponents: ["minecraft:sky_color", "minecraft:foliage_appearance", "minecraft:grass_appearance", "minecraft:water_appearance", "minecraft:dry_foliage_color"],
+
                 data: {},
                 clientData: {}
             };
@@ -1142,6 +1154,55 @@ function registerOfflineCache() {
             };
             reader.readAsText(file);
         }
+        async function importMultiJSON(e) {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+            if (!currentProject) { showToast("Please open a project first!"); return; }
+
+            const parsedFiles = [];
+            for (let file of files) {
+                const text = await file.text();
+                try {
+                    const cleanData = text.replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) => g ? "" : m);
+                    parsedFiles.push(JSON.parse(cleanData));
+                } catch (err) { console.error("Invalid JSON in " + file.name); }
+            }
+
+            // Group imports by identifier to merge server/client automatically
+            const importsById = {};
+            parsedFiles.forEach(json => {
+                let id = json["minecraft:biome"]?.description?.identifier || json["minecraft:client_biome"]?.description?.identifier;
+                if (!id) return;
+                
+                if (!importsById[id]) importsById[id] = { server: null, client: null };
+                if (json["minecraft:biome"]) importsById[id].server = json;
+                if (json["minecraft:client_biome"]) importsById[id].client = json;
+            });
+
+            // Process grouped imports
+            Object.keys(importsById).forEach(id => {
+                let targetBiome = currentProject.biomes.find(b => b.identifier === id);
+                
+                if (!targetBiome) {
+                    // Create new tab for missing identifier
+                    targetBiome = createDefaultBiomeState(id);
+                    targetBiome.activeComponents = []; // Clear defaults to represent pure import
+                    targetBiome.clientActiveComponents = [];
+                    currentProject.biomes.push(targetBiome);
+                }
+                
+                // Temporarily focus the target biome so processImport applies data properly
+                currentBiomeId = targetBiome.id; 
+                
+                if (importsById[id].server) processImport(importsById[id].server);
+                if (importsById[id].client) processImport(importsById[id].client);
+            });
+
+            syncProject(); renderTabs(); renderComponents(); renderForm(); generateJSONDOM();
+            showToast(`Imported & Merged ${files.length} file(s)`);
+            e.target.value = ''; // Reset input
+        }
+
 
         function processImport(json) {
             const isServer = !!json["minecraft:biome"];
@@ -1419,26 +1480,27 @@ function registerOfflineCache() {
                 const schema = serverSchema[key];
                 const isActive = biome.activeComponents.includes(key);
                 
-                // Remove the UI disabled restriction specifically for replace_biomes
+                // Keep replace_biomes unrestricted and freely toggleable
                 const isRequired = schema.required && key !== 'minecraft:replace_biomes';
                 const cls = `toggle-item ${isActive ? 'active' : ''} ${isRequired ? 'required' : ''}`;
-
+                
                 serverHtml += `<label class="${cls}"><input type="checkbox" ${isActive ? 'checked' : ''} ${isRequired ? 'disabled' : ''} onchange="toggleComponent('${key}', false)"><span>${key.replace('minecraft:', '')}</span></label>`;
             });
-
-
 
             let clientHtml = '';
             Object.keys(clientSchema).forEach(key => {
                 const schema = clientSchema[key];
                 const isActive = biome.clientActiveComponents.includes(key);
                 const cls = `toggle-item ${isActive ? 'active' : ''}`;
+                
                 clientHtml += `<label class="${cls}"><input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleComponent('${key}', true)"><span>${key.replace('minecraft:', '')}</span></label>`;
             });
 
+            // Target the restored UI containers separately
             document.querySelectorAll('.desktop-components-container, .mobile-components-container').forEach(c => c.innerHTML = serverHtml);
             document.querySelectorAll('.desktop-client-components-container, .mobile-client-components-container').forEach(c => c.innerHTML = clientHtml);
         }
+
 
         function renderForm() {
             const container = document.getElementById('form-container');
@@ -1527,10 +1589,6 @@ function registerOfflineCache() {
                 html += `</div></div>`;
             });
 
-            // Client Separator
-            if (biome.clientActiveComponents.length > 0) {
-                html += `<div class="client-section-title">Client Biome Settings</div>`;
-            }
 
             // Client Components
             biome.clientActiveComponents.forEach(compKey => {
@@ -1570,7 +1628,7 @@ function registerOfflineCache() {
             if (field.type === 'noise_specifiers') {
                 // Ensure default exists in actual data to prevent UI/JSON desync
                 if (!biome.data[compKey][field.id]) {
-                    biome.data[compKey][field.id] = field.default ? JSON.parse(JSON.stringify(field.default)) : [ { block: "minecraft:stone", min: 0.0, max: 1.0 } ];
+                    biome.data[compKey][field.id] = field.default ? JSON.parse(JSON.stringify(field.default)) : [ { block: "minecraft:stone", min: -1.0, max: 1.0 } ];
                 }
                 const items = biome.data[compKey][field.id];
                 let html = `<div class="form-group full-width"><label style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">${field.label}</label>`;
@@ -1612,7 +1670,7 @@ function registerOfflineCache() {
         function addNoiseSpecifier(compKey, fieldId) { 
             const biome = getCurrentBiome(); if(!biome) return;
             if (!biome.data[compKey][fieldId]) biome.data[compKey][fieldId] = [];
-            biome.data[compKey][fieldId].push({ block: "minecraft:stone", min: 0.0, max: 1.0 }); 
+            biome.data[compKey][fieldId].push({ block: "minecraft:stone", min: -1.0, max: 1.0 }); 
             syncProject(); renderForm(); generateJSONDOM(); 
         }
 
