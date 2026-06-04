@@ -193,6 +193,9 @@
         .sidebar.collapsed { width: 50px; }
         .preview-panel.collapsed { width: 50px; }
         .collapsed .panel-title, .collapsed .component-list, .collapsed .preview-content, .collapsed .preview-actions, .collapsed .client-separator { display: none !important; }
+        
+        .sidebar-section-title { padding: 10px 15px 5px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .sidebar.collapsed .sidebar-section-title { display: none; }
 
         .panel-header {
             padding: 0 15px; height: 48px; background-color: rgba(0, 0, 0, 0.2); border-bottom: 1px solid var(--border-color);
@@ -483,10 +486,10 @@
                         <svg style="width:20px;height:20px;fill:currentColor" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
                     </button>
                 </div>
-                <div style="padding: 10px 15px 5px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Server Biome</div>
-                <div class="component-list desktop-components-container"></div>
-                <div style="padding: 10px 15px 5px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Client Biome</div>
-                <div class="component-list desktop-client-components-container"></div>
+<div class="sidebar-section-title">Server Biome</div>
+<div class="component-list desktop-components-container"></div>
+<div class="sidebar-section-title">Client Biome</div>
+<div class="component-list desktop-client-components-container"></div>
             </div>
 
 
@@ -1164,44 +1167,83 @@ function registerOfflineCache() {
                 const text = await file.text();
                 try {
                     const cleanData = text.replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) => g ? "" : m);
-                    parsedFiles.push(JSON.parse(cleanData));
+                    parsedFiles.push({ json: JSON.parse(cleanData), name: file.name });
                 } catch (err) { console.error("Invalid JSON in " + file.name); }
             }
 
-            // Group imports by identifier to merge server/client automatically
             const importsById = {};
-            parsedFiles.forEach(json => {
-                let id = json["minecraft:biome"]?.description?.identifier || json["minecraft:client_biome"]?.description?.identifier;
-                if (!id) return;
+            const clientFilesWithoutNamespace = [];
+
+            // Pass 1: Group Server Biomes and Client Biomes WITH explicit namespaces
+            parsedFiles.forEach(fileObj => {
+                const json = fileObj.json;
                 
-                if (!importsById[id]) importsById[id] = { server: null, client: null };
-                if (json["minecraft:biome"]) importsById[id].server = json;
-                if (json["minecraft:client_biome"]) importsById[id].client = json;
+                if (json["minecraft:biome"]) {
+                    let id = json["minecraft:biome"].description?.identifier || fileObj.name.replace('.json', '').replace('.biome', '');
+                    id = id.trim();
+                    if (!importsById[id]) importsById[id] = { server: null, client: null };
+                    importsById[id].server = json;
+                }
+                
+                if (json["minecraft:client_biome"]) {
+                    let id = json["minecraft:client_biome"].description?.identifier || fileObj.name.replace('.json', '').replace('.client_biome', '');
+                    id = id.trim();
+                    
+                    if (!id.includes(':')) {
+                        // Save client biomes without namespaces for Pass 2 smart merging
+                        clientFilesWithoutNamespace.push({ id, json });
+                    } else {
+                        if (!importsById[id]) importsById[id] = { server: null, client: null };
+                        importsById[id].client = json;
+                    }
+                }
             });
 
-            // Process grouped imports
+            // Pass 2: Smart-Merge Client Biomes WITHOUT namespaces
+            clientFilesWithoutNamespace.forEach(clientObj => {
+                const baseId = clientObj.id; // e.g., "forest"
+                
+                // Look for a match in the current import batch (e.g., "minecraft:forest")
+                let matchedId = Object.keys(importsById).find(key => key.endsWith(`:${baseId}`) || key === baseId);
+                
+                // If not found in batch, look in the existing project tabs
+                if (!matchedId) {
+                    const existingBiome = currentProject.biomes.find(b => b.identifier.endsWith(`:${baseId}`) || b.identifier === baseId);
+                    if (existingBiome) matchedId = existingBiome.identifier;
+                }
+
+                const targetId = matchedId || baseId; // Use matched ID or fallback to the plain base ID
+                
+                if (!importsById[targetId]) importsById[targetId] = { server: null, client: null };
+                importsById[targetId].client = clientObj.json;
+            });
+
+            // Pass 3: Process the merged groups into the project
             Object.keys(importsById).forEach(id => {
                 let targetBiome = currentProject.biomes.find(b => b.identifier === id);
                 
                 if (!targetBiome) {
-                    // Create new tab for missing identifier
                     targetBiome = createDefaultBiomeState(id);
-                    targetBiome.activeComponents = []; // Clear defaults to represent pure import
+                    targetBiome.identifier = id; 
+                    targetBiome.name = id.includes(':') ? id.split(':')[1] : id;
+                    targetBiome.activeComponents = []; 
                     targetBiome.clientActiveComponents = [];
                     currentProject.biomes.push(targetBiome);
                 }
                 
-                // Temporarily focus the target biome so processImport applies data properly
                 currentBiomeId = targetBiome.id; 
                 
                 if (importsById[id].server) processImport(importsById[id].server);
                 if (importsById[id].client) processImport(importsById[id].client);
+                
+                targetBiome.identifier = id; // Final safety lock
             });
 
             syncProject(); renderTabs(); renderComponents(); renderForm(); generateJSONDOM();
             showToast(`Imported & Merged ${files.length} file(s)`);
             e.target.value = ''; // Reset input
         }
+
 
 
         function processImport(json) {
@@ -1249,6 +1291,7 @@ function registerOfflineCache() {
             if (isClient) {
                 const biomeDef = json["minecraft:client_biome"];
                 const importedId = biomeDef.description?.identifier;
+
                 // Client uses the same identifier block, if it's new, set revert.
                 if (importedId && importedId !== biome.identifier) {
                     if (!biome.revertIdentifier) biome.revertIdentifier = biome.identifier;
